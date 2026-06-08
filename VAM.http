@@ -1,0 +1,6 @@
+@VAM_HostAddress = http://localhost:5137
+
+GET {{VAM_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
