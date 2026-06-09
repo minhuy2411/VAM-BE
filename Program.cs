@@ -1,3 +1,4 @@
+using Scalar.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -113,14 +114,13 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ============================================================
-// Swagger - enabled in all environments for API testing
+// Scalar API Reference (Modern replacement for Swagger UI)
 // ============================================================
 app.MapOpenApi();
-app.UseSwagger();
-app.UseSwaggerUI(options =>
+app.MapScalarApiReference(options =>
 {
-    options.SwaggerEndpoint("/swagger/v1/swagger.json", "VAM API v1");
-    options.RoutePrefix = "swagger";
+    options.WithTitle("VAM API v1")
+           .WithTheme(ScalarTheme.Mars);
 });
 
 // Note: No UseHttpsRedirection() - Render handles SSL at the proxy level
