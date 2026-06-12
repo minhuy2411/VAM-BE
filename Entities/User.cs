@@ -9,7 +9,7 @@ namespace VAM.Entities
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
-        
+
         [Required]
         [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
@@ -33,5 +33,24 @@ namespace VAM.Entities
         public string Status { get; set; } = "active";
 
         public string? Address { get; set; }
+
+        public virtual SellerProfile? SellerProfile { get; set; }
+        public virtual BusinessProfile? BusinessProfile { get; set; }
+    }
+
+    public enum UserRole
+    {
+        admin,
+        seller,
+        buyer,
+        customer,
+    }
+
+    public enum UserStatus
+    {
+        active,
+        inactive,
+        pending,
+        banned,
     }
 }

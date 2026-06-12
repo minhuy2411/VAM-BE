@@ -13,6 +13,8 @@ namespace VAM.Repositories
         IRepositoryBase<Entities.OrderItem> OrderItems { get; }
         IRepositoryBase<Entities.Payment> Payments { get; }
         IRepositoryBase<Entities.Review> Reviews { get; }
+        IRepositoryBase<Entities.SellerProfile> SellerProfiles { get; }
+        IRepositoryBase<Entities.BusinessProfile> BusinessProfiles { get; }
         
         Task<int> CompleteAsync();
         Task BeginTransactionAsync();

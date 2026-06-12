@@ -18,6 +18,8 @@ namespace VAM.Repositories
         public IRepositoryBase<OrderItem> OrderItems { get; private set; }
         public IRepositoryBase<Payment> Payments { get; private set; }
         public IRepositoryBase<Review> Reviews { get; private set; }
+        public IRepositoryBase<SellerProfile> SellerProfiles { get; private set; }
+        public IRepositoryBase<BusinessProfile> BusinessProfiles { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -30,6 +32,8 @@ namespace VAM.Repositories
             OrderItems = new RepositoryBase<OrderItem>(_context);
             Payments = new RepositoryBase<Payment>(_context);
             Reviews = new RepositoryBase<Review>(_context);
+            SellerProfiles = new RepositoryBase<SellerProfile>(_context);
+            BusinessProfiles = new RepositoryBase<BusinessProfile>(_context);
         }
 
         public async Task<int> CompleteAsync()

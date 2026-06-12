@@ -18,7 +18,7 @@ namespace VAM.Services
         private readonly IConfiguration _config;
         private readonly IEmailService _emailService;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config, IEmailService emailService) 
+        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config, IEmailService emailService)
             : base(unitOfWork, unitOfWork.Users, mapper)
         {
             _config = config;
@@ -54,8 +54,8 @@ namespace VAM.Services
                 Password = BCrypt.Net.BCrypt.HashPassword(dto.Password),
                 Phone = dto.Phone,
                 Address = dto.Address,
-                Role = "customer",
-                Status = "active"
+                Role = UserRole.customer.ToString(),
+                Status = UserStatus.pending.ToString()
             };
 
             await _unitOfWork.Users.CreateAsync(user);
@@ -73,7 +73,7 @@ namespace VAM.Services
 
             var resetToken = GenerateJwtToken(user, "reset_password", TimeSpan.FromMinutes(15));
             var resetLink = $"http://localhost:3000/reset-password?token={resetToken}";
-            
+
             var emailBody = $"<h1>Reset Password</h1><p>Click <a href='{resetLink}'>here</a> to reset your password. It expires in 15 minutes.</p>";
             await _emailService.SendEmailAsync(user.Email, "Reset Password Request", emailBody);
         }

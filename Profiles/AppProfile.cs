@@ -40,6 +40,11 @@ namespace VAM.Profiles
             CreateMap<CreateReviewDto, Review>();
             CreateMap<UpdateReviewDto, Review>();
 
+            CreateMap<SellerProfile, SellerProfileDto>().ReverseMap();
+            CreateMap<CreateSellerProfileDto, SellerProfile>();
+            
+            CreateMap<BusinessProfile, BusinessProfileDto>().ReverseMap();
+            CreateMap<CreateBusinessProfileDto, BusinessProfile>();
         }
     }
 }
