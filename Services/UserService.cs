@@ -10,6 +10,7 @@ using VAM.DTOs;
 using VAM.Entities;
 using VAM.Repositories;
 using BCrypt.Net;
+using Google.Apis.Auth;
 
 namespace VAM.Services
 {
@@ -29,8 +30,71 @@ namespace VAM.Services
         {
             var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
             var user = users.FirstOrDefault();
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.Password))
+
+            bool isValid = false;
+            try
+            {
+                if (user != null)
+                {
+                    isValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.Password);
+                }
+            }
+            catch
+            {
+                isValid = false;
+            }
+
+            if (user == null || !isValid)
                 throw new Exception("Invalid email or password");
+
+            var token = GenerateJwtToken(user, "access", TimeSpan.FromHours(2));
+            return new AuthResponseDto
+            {
+                Token = token,
+                User = _mapper.Map<UserDto>(user)
+            };
+        }
+
+        public async Task<AuthResponseDto> LoginWithGoogleAsync(GoogleLoginDto dto)
+        {
+            GoogleJsonWebSignature.Payload payload;
+            try
+            {
+                var googleClientId = _config["Google:ClientId"];
+                payload = await GoogleJsonWebSignature.ValidateAsync(dto.IdToken, new GoogleJsonWebSignature.ValidationSettings
+                {
+                    Audience = string.IsNullOrEmpty(googleClientId) ? null : new[] { googleClientId }
+                });
+            }
+            catch (InvalidJwtException e)
+            {
+                throw new Exception("Invalid Google ID token", e);
+            }
+
+            var users = await _unitOfWork.Users.FindAsync(u => u.Email == payload.Email);
+            var user = users.FirstOrDefault();
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    Name = payload.Name ?? "Google User",
+                    Email = payload.Email,
+                    Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+                    Role = UserRole.customer.ToString(),
+                    Status = UserStatus.active.ToString()
+                };
+
+                await _unitOfWork.Users.CreateAsync(user);
+                await _unitOfWork.CompleteAsync();
+            }
+            else
+            {
+                if (user.Status == UserStatus.inactive.ToString() || user.Status == UserStatus.banned.ToString())
+                {
+                    throw new Exception("Account is inactive or banned");
+                }
+            }
 
             var token = GenerateJwtToken(user, "access", TimeSpan.FromHours(2));
             return new AuthResponseDto

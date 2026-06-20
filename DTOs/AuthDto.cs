@@ -56,6 +56,12 @@ namespace VAM.DTOs
         public string NewPassword { get; set; } = string.Empty;
     }
 
+    public class GoogleLoginDto
+    {
+        [Required]
+        public string IdToken { get; set; } = string.Empty;
+    }
+
     public class AuthResponseDto
     {
         public string Token { get; set; } = string.Empty;

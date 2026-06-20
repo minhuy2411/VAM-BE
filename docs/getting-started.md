@@ -2,10 +2,10 @@
 
 ## Yêu cầu hệ thống
 
-| Phần mềm | Phiên bản |
-|---|---|
-| .NET SDK | 10.0+ |
-| PostgreSQL | 14+ |
+| Phần mềm       | Phiên bản                            |
+| -------------- | ------------------------------------ |
+| .NET SDK       | 10.0+                                |
+| PostgreSQL     | 14+                                  |
 | IDE (tùy chọn) | Visual Studio 2022 / VS Code / Rider |
 
 ## 1. Clone & Restore packages
@@ -102,44 +102,39 @@ dotnet run
 
 Sau khi chạy, project sẽ khởi động tại:
 
-| Protocol | URL |
-|---|---|
-| HTTP | `http://localhost:5137` |
-| HTTPS | `https://localhost:7272` |
+| Protocol | URL                      |
+| -------- | ------------------------ |
+| HTTP     | `http://localhost:5137`  |
+| HTTPS    | `https://localhost:7272` |
 
 ## 7. Truy cập Swagger UI
 
 Mở trình duyệt và truy cập:
 
 ```
-http://localhost:5137/swagger
-```
-
-hoặc
-
-```
-https://localhost:7272/swagger
+http://localhost:10000/scalar/v1
 ```
 
 Tại đây bạn có thể:
+
 - Xem danh sách tất cả API endpoints
 - Test trực tiếp từng API endpoint
 - Xem request/response schema
 
 ## 8. Các lệnh thường dùng
 
-| Lệnh | Mô tả |
-|---|---|
-| `dotnet restore` | Restore NuGet packages |
-| `dotnet build` | Build project |
-| `dotnet run` | Chạy project |
-| `dotnet watch run` | Chạy project với hot reload |
-| `dotnet ef migrations add <Name>` | Tạo migration mới |
-| `dotnet ef database update` | Áp dụng migrations vào DB |
-| `dotnet ef migrations list` | Xem danh sách migrations |
-| `dotnet ef database drop --force` | Xóa database |
-| `dotnet clean` | Xóa build artifacts |
-| `dotnet publish -c Release` | Build production |
+| Lệnh                              | Mô tả                       |
+| --------------------------------- | --------------------------- |
+| `dotnet restore`                  | Restore NuGet packages      |
+| `dotnet build`                    | Build project               |
+| `dotnet run`                      | Chạy project                |
+| `dotnet watch run`                | Chạy project với hot reload |
+| `dotnet ef migrations add <Name>` | Tạo migration mới           |
+| `dotnet ef database update`       | Áp dụng migrations vào DB   |
+| `dotnet ef migrations list`       | Xem danh sách migrations    |
+| `dotnet ef database drop --force` | Xóa database                |
+| `dotnet clean`                    | Xóa build artifacts         |
+| `dotnet publish -c Release`       | Build production            |
 
 ## Xử lý lỗi thường gặp
 
