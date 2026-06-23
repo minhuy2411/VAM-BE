@@ -128,6 +128,8 @@ app.MapScalarApiReference(options =>
 
 app.UseCors("AllowAll");
 
+app.UseMiddleware<VAM.Middleware.ExceptionMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 

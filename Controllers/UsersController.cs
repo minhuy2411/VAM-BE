@@ -51,5 +51,12 @@ namespace VAM.Controllers
             await _service.DeleteAsync(id);
             return NoContent();
         }
+
+        [HttpPut("customer-status/{userId}")]
+        public async Task<IActionResult> UpdateCustomerStatus(int userId)
+        {
+            await _service.UpdateCustomerStatus(userId);
+            return NoContent();
+        }
     }
 }

@@ -11,6 +11,7 @@ using VAM.Entities;
 using VAM.Repositories;
 using BCrypt.Net;
 using Google.Apis.Auth;
+using VAM.Exceptions;
 
 namespace VAM.Services
 {
@@ -228,5 +229,18 @@ namespace VAM.Services
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
+
+        public async Task UpdateCustomerStatus(int userId)
+        {
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null)
+                throw new AppException(USER_ERROR.USER_NOT_FOUND);
+            if (user.Status == UserStatus.active.ToString())
+                throw new AppException(USER_ERROR.USER_ALREADY_ACTIVE);
+            user.Status = UserStatus.active.ToString();
+            _unitOfWork.Users.Update(user);
+            await _unitOfWork.CompleteAsync();
+        }
+
     }
 }
