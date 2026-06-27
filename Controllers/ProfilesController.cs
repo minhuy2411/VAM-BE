@@ -30,10 +30,20 @@ namespace VAM.Controllers
         }
 
         [HttpPost("seller")]
-        public async Task<IActionResult> CreateSellerProfile([FromBody] CreateSellerProfileDto dto)
+        public async Task<IActionResult> CreateSellerProfile([FromForm] CreateSellerProfileDto dto)
         {
             try
             {
+                if (dto.Certificate != null)
+                {
+                    var contentType = dto.Certificate.ContentType?.ToLower();
+                    var extension = System.IO.Path.GetExtension(dto.Certificate.FileName)?.ToLower();
+                    if (contentType != "application/pdf" && extension != ".pdf")
+                    {
+                        return BadRequest(new { message = "Only PDF files are allowed for Certificate." });
+                    }
+                }
+
                 var userId = GetUserId();
                 var result = await _profileService.CreateSellerProfileAsync(userId, dto);
                 return Ok(result);
@@ -45,10 +55,20 @@ namespace VAM.Controllers
         }
 
         [HttpPost("business")]
-        public async Task<IActionResult> CreateBusinessProfile([FromBody] CreateBusinessProfileDto dto)
+        public async Task<IActionResult> CreateBusinessProfile([FromForm] CreateBusinessProfileDto dto)
         {
             try
             {
+                if (dto.BusinessLicense != null)
+                {
+                    var contentType = dto.BusinessLicense.ContentType?.ToLower();
+                    var extension = System.IO.Path.GetExtension(dto.BusinessLicense.FileName)?.ToLower();
+                    if (contentType != "application/pdf" && extension != ".pdf")
+                    {
+                        return BadRequest(new { message = "Only PDF files are allowed for Business License." });
+                    }
+                }
+
                 var userId = GetUserId();
                 var result = await _profileService.CreateBusinessProfileAsync(userId, dto);
                 return Ok(result);

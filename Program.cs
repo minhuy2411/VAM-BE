@@ -102,6 +102,8 @@ builder.Services.AddScoped<IOrderItemService, OrderItemService>();
 builder.Services.AddScoped<IPaymentService, PaymentService>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<IFirebaseStorageService, FirebaseStorageService>();
 
 var app = builder.Build();
 

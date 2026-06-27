@@ -13,12 +13,14 @@ namespace VAM.Services
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
+        private readonly IFirebaseStorageService _firebaseStorageService;
 
-        public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IEmailService emailService)
+        public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IEmailService emailService, IFirebaseStorageService firebaseStorageService)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _emailService = emailService;
+            _firebaseStorageService = firebaseStorageService;
         }
 
         public async Task<SellerProfileDto> CreateSellerProfileAsync(int userId, CreateSellerProfileDto dto)
@@ -29,13 +31,19 @@ namespace VAM.Services
             var existingProfiles = await _unitOfWork.SellerProfiles.FindAsync(p => p.UserId == userId);
             if (existingProfiles.Any()) throw new Exception("Seller profile already exists");
 
+            string? certificateUrl = null;
+            if (dto.Certificate != null)
+            {
+                certificateUrl = await _firebaseStorageService.UploadFileAsync(dto.Certificate, "certificates");
+            }
+
             var profile = new SellerProfile
             {
                 UserId = userId,
                 FarmName = dto.FarmName,
                 FarmAddress = dto.FarmAddress,
                 AquacultureType = dto.AquacultureType,
-                Certificate = dto.Certificate,
+                Certificate = certificateUrl,
                 Status = ProfileStatus.PENDING
             };
 
@@ -53,12 +61,18 @@ namespace VAM.Services
             var existingProfiles = await _unitOfWork.BusinessProfiles.FindAsync(p => p.UserId == userId);
             if (existingProfiles.Any()) throw new Exception("Business profile already exists");
 
+            string? businessLicenseUrl = null;
+            if (dto.BusinessLicense != null)
+            {
+                businessLicenseUrl = await _firebaseStorageService.UploadFileAsync(dto.BusinessLicense, "business_licenses");
+            }
+
             var profile = new BusinessProfile
             {
                 UserId = userId,
                 CompanyName = dto.CompanyName,
                 TaxCode = dto.TaxCode,
-                BusinessLicense = dto.BusinessLicense,
+                BusinessLicense = businessLicenseUrl,
                 Address = dto.Address,
                 Status = ProfileStatus.PENDING
             };

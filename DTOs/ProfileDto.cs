@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http;
 
 namespace VAM.DTOs
 {
@@ -27,8 +28,7 @@ namespace VAM.DTOs
         [MaxLength(100)]
         public string? AquacultureType { get; set; }
 
-        [MaxLength(255)]
-        public string? Certificate { get; set; }
+        public IFormFile? Certificate { get; set; }
     }
 
     public class BusinessProfileDto
@@ -54,8 +54,7 @@ namespace VAM.DTOs
         [MaxLength(50)]
         public string TaxCode { get; set; } = string.Empty;
 
-        [MaxLength(255)]
-        public string? BusinessLicense { get; set; }
+        public IFormFile? BusinessLicense { get; set; }
 
         public string? Address { get; set; }
     }
