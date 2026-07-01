@@ -12,6 +12,7 @@ namespace VAM.DTOs
         public string? FarmAddress { get; set; }
         public string? AquacultureType { get; set; }
         public string? Certificate { get; set; }
+        public string? Note { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTimeOffset? VerifiedAt { get; set; }
         public int? VerifiedById { get; set; }
@@ -29,6 +30,8 @@ namespace VAM.DTOs
         public string? AquacultureType { get; set; }
 
         public IFormFile? Certificate { get; set; }
+
+        public string? Note { get; set; }
     }
 
     public class BusinessProfileDto
@@ -39,6 +42,7 @@ namespace VAM.DTOs
         public string TaxCode { get; set; } = string.Empty;
         public string? BusinessLicense { get; set; }
         public string? Address { get; set; }
+        public string? Note { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTimeOffset? VerifiedAt { get; set; }
         public int? VerifiedById { get; set; }
@@ -57,6 +61,8 @@ namespace VAM.DTOs
         public IFormFile? BusinessLicense { get; set; }
 
         public string? Address { get; set; }
+
+        public string? Note { get; set; }
     }
 
     public class ApproveProfileDto

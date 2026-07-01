@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using VAM.DTOs;
@@ -7,6 +8,7 @@ namespace VAM.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class OrderItemsController : ControllerBase
     {
         private readonly IOrderItemService _service;

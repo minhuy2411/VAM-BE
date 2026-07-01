@@ -24,11 +24,16 @@ namespace VAM.Profiles
             CreateMap<CreateProductDto, Product>();
             CreateMap<UpdateProductDto, Product>();
 
-            CreateMap<Order, OrderDto>().ReverseMap();
+            CreateMap<Order, OrderDto>()
+                .ForMember(dest => dest.BuyerName, opt => opt.MapFrom(src => src.Buyer != null ? src.Buyer.Name : null))
+                .ReverseMap();
             CreateMap<CreateOrderDto, Order>();
             CreateMap<UpdateOrderDto, Order>();
 
-            CreateMap<OrderItem, OrderItemDto>().ReverseMap();
+            CreateMap<OrderItem, OrderItemDto>()
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : string.Empty))
+                .ForMember(dest => dest.ProductImageUrls, opt => opt.MapFrom(src => src.Product != null ? src.Product.ImageUrls : null))
+                .ReverseMap();
             CreateMap<CreateOrderItemDto, OrderItem>();
             CreateMap<UpdateOrderItemDto, OrderItem>();
 

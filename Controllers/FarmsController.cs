@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using VAM.DTOs;
 using VAM.Services;
@@ -16,6 +18,16 @@ namespace VAM.Controllers
             _service = service;
         }
 
+        private int GetUserId()
+        {
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdStr, out int userId))
+            {
+                return userId;
+            }
+            throw new System.Exception("Invalid user claims");
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = null)
         {
@@ -31,13 +43,19 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "seller,admin")]
         [HttpPost]
         public async Task<IActionResult> Create(CreateFarmDto dto)
         {
+            if (!User.IsInRole("admin"))
+            {
+                dto.SellerId = GetUserId();
+            }
             var result = await _service.CreateAsync(dto);
             return Ok(result);
         }
 
+        [Authorize(Roles = "seller,admin")]
         [HttpPut]
         public async Task<IActionResult> Update(UpdateFarmDto dto)
         {
@@ -45,6 +63,7 @@ namespace VAM.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "seller,admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

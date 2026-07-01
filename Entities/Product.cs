@@ -22,11 +22,18 @@ namespace VAM.Entities
         [ForeignKey("CategoryId")]
         public Category? Category { get; set; }
 
+        public int? FarmId { get; set; }
+
+        [ForeignKey("FarmId")]
+        public Farm? Farm { get; set; }
+
         [Required]
         [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
         public string? Description { get; set; }
+
+        public string? ImageUrls { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(15, 2)")]

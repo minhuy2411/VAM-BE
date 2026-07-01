@@ -59,6 +59,12 @@ namespace VAM.Data
                 .WithMany()
                 .HasForeignKey(b => b.VerifiedById)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Product>()
+                .HasOne(p => p.Farm)
+                .WithMany()
+                .HasForeignKey(p => p.FarmId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

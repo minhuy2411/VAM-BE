@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using VAM.DTOs;
@@ -31,6 +32,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPost]
         public async Task<IActionResult> Create(CreateCategoryDto dto)
         {
@@ -38,6 +40,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "admin")]
         [HttpPut]
         public async Task<IActionResult> Update(UpdateCategoryDto dto)
         {
@@ -45,6 +48,7 @@ namespace VAM.Controllers
             return NoContent();
         }
 
+        [Authorize(Roles = "admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

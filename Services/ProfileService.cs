@@ -44,6 +44,7 @@ namespace VAM.Services
                 FarmAddress = dto.FarmAddress,
                 AquacultureType = dto.AquacultureType,
                 Certificate = certificateUrl,
+                Note = dto.Note,
                 Status = ProfileStatus.PENDING
             };
 
@@ -74,6 +75,7 @@ namespace VAM.Services
                 TaxCode = dto.TaxCode,
                 BusinessLicense = businessLicenseUrl,
                 Address = dto.Address,
+                Note = dto.Note,
                 Status = ProfileStatus.PENDING
             };
 

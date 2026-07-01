@@ -8,6 +8,7 @@ namespace VAM.DTOs
     {
         public int Id { get; set; }
         public int BuyerId { get; set; }
+        public string? BuyerName { get; set; }
         public decimal TotalPrice { get; set; }
         public string ShippingAddress { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -29,9 +30,19 @@ namespace VAM.DTOs
 
     public class UpdateOrderDto
     {
+        [Required]
+        public int Id { get; set; }
+
         [MaxLength(20)]
         public string? Status { get; set; }
         
         public string? ShippingAddress { get; set; }
+    }
+
+    public class UpdateOrderStatusDto
+    {
+        [Required]
+        [MaxLength(20)]
+        public string Status { get; set; } = string.Empty;
     }
 }

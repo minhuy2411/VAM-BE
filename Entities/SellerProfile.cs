@@ -25,6 +25,9 @@ namespace VAM.Entities
         [MaxLength(255)]
         public string? Certificate { get; set; }
 
+        [MaxLength(1000)]
+        public string? Note { get; set; }
+
         [Required]
         public ProfileStatus Status { get; set; } = ProfileStatus.PENDING;
 

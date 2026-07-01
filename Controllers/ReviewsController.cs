@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using VAM.DTOs;
@@ -31,6 +32,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create(CreateReviewDto dto)
         {
@@ -38,6 +40,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPut]
         public async Task<IActionResult> Update(UpdateReviewDto dto)
         {
@@ -45,6 +48,7 @@ namespace VAM.Controllers
             return NoContent();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {

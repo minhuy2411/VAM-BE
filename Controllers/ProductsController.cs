@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using VAM.DTOs;
 using VAM.Services;
@@ -16,10 +18,21 @@ namespace VAM.Controllers
             _service = service;
         }
 
-        [HttpGet]
-        public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = null)
+        private int GetUserId()
         {
-            var result = await _service.GetAllAsync(pageNumber, pageSize, search);
+            var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (int.TryParse(userIdStr, out int userId))
+            {
+                return userId;
+            }
+            throw new System.Exception("Invalid user claims");
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll([FromQuery] ProductFilterDto filter)
+        {
+            filter ??= new ProductFilterDto();
+            var result = await _service.GetFilteredAsync(filter);
             return Ok(result);
         }
 
@@ -31,23 +44,59 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "seller,admin")]
         [HttpPost]
-        public async Task<IActionResult> Create(CreateProductDto dto)
+        public async Task<IActionResult> Create([FromForm] CreateProductDto dto)
         {
-            var result = await _service.CreateAsync(dto);
+            if (!User.IsInRole("admin"))
+            {
+                dto.SellerId = GetUserId();
+            }
+            var result = await _service.CreateProductWithImagesAsync(dto);
             return Ok(result);
         }
 
-        [HttpPut]
-        public async Task<IActionResult> Update(UpdateProductDto dto)
+        [Authorize(Roles = "seller,admin")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromForm] UpdateProductDto dto)
         {
-            await _service.UpdateAsync(dto);
+            dto.Id = id;
+            if (!User.IsInRole("admin"))
+            {
+                var existingProduct = await _service.GetByIdAsync(id);
+                if (existingProduct == null) return NotFound();
+                if (existingProduct.SellerId != GetUserId())
+                {
+                    return Forbid();
+                }
+            }
+
+            await _service.UpdateProductWithImagesAsync(dto);
             return NoContent();
         }
 
+        [Authorize(Roles = "admin")]
+        [HttpPut("{id}/approve")]
+        public async Task<IActionResult> Approve(int id, [FromBody] ApproveProductDto dto)
+        {
+            await _service.ApproveProductAsync(id, dto);
+            return NoContent();
+        }
+
+        [Authorize(Roles = "seller,admin")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            if (!User.IsInRole("admin"))
+            {
+                var existingProduct = await _service.GetByIdAsync(id);
+                if (existingProduct == null) return NotFound();
+                if (existingProduct.SellerId != GetUserId())
+                {
+                    return Forbid();
+                }
+            }
+
             await _service.DeleteAsync(id);
             return NoContent();
         }

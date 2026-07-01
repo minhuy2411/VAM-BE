@@ -17,7 +17,7 @@ Tất cả controllers đều theo chuẩn RESTful với pattern `api/[controlle
 | Categories | `/api/Categorys` | GET, GET/:id, POST, PUT, DELETE/:id |
 | Farms | `/api/Farms` | GET, GET/:id, POST, PUT, DELETE/:id |
 | Products | `/api/Products` | GET, GET/:id, POST, PUT, DELETE/:id |
-| Orders | `/api/Orders` | GET, GET/:id, POST, PUT, DELETE/:id |
+| Orders | `/api/Orders` | GET (admin), GET/:id, GET/my-orders, GET/seller-orders, POST, PATCH/:id/status, DELETE/:id (admin) |
 | OrderItems | `/api/OrderItems` | GET, GET/:id, POST, PUT, DELETE/:id |
 | Payments | `/api/Payments` | GET, GET/:id, POST, PUT, DELETE/:id |
 | Reviews | `/api/Reviews` | GET, GET/:id, POST, PUT, DELETE/:id |
@@ -102,13 +102,46 @@ Tất cả controllers đều theo chuẩn RESTful với pattern `api/[controlle
 
 ### 8. Orders - `/api/Orders`
 
-| Method | Endpoint | Mô tả | Request Body / Query Params | Response |
-|---|---|---|---|---|
-| GET | `/api/Orders` | Lấy danh sách đơn hàng | `pageNumber`, `pageSize`, `search` | `200 OK` + Phân trang |
-| GET | `/api/Orders/{id}` | Lấy chi tiết đơn hàng | — | `200 OK` + `OrderDto` |
-| POST | `/api/Orders` | Tạo đơn hàng mới | `CreateOrderDto` | `200 OK` + `OrderDto` |
-| PUT | `/api/Orders` | Cập nhật đơn hàng | `UpdateOrderDto` | `204 No Content` |
-| DELETE | `/api/Orders/{id}` | Xóa đơn hàng | — | `204 No Content` |
+*Yêu cầu Token xác thực (`Authorization: Bearer <token>`)*
+
+| Method | Endpoint | Role | Mô tả | Request Body / Query Params | Response |
+|---|---|---|---|---|---|
+| GET | `/api/Orders` | `admin` | Lấy tất cả đơn hàng | `pageNumber`, `pageSize`, `search` | `200 OK` + Phân trang |
+| GET | `/api/Orders/{id}` | any auth | Lấy chi tiết đơn hàng | — | `200 OK` + `OrderDto` |
+| GET | `/api/Orders/my-orders` | any auth | Lấy đơn hàng của buyer (tôi) | `pageNumber`, `pageSize` | `200 OK` + Phân trang |
+| GET | `/api/Orders/seller-orders` | `seller`, `admin` | Lấy đơn hàng chứa sản phẩm của seller | `pageNumber`, `pageSize` | `200 OK` + Phân trang |
+| POST | `/api/Orders` | any auth | Tạo đơn hàng mới (tự tính giá, validate tồn kho, trừ kho) | `CreateOrderDto` | `200 OK` + `OrderDto` |
+| PATCH | `/api/Orders/{id}/status` | any auth | Chuyển trạng thái đơn hàng (state machine) | `UpdateOrderStatusDto` | `204 No Content` |
+| DELETE | `/api/Orders/{id}` | `admin` | Xóa đơn hàng (Soft delete) | — | `204 No Content` |
+
+**Luồng trạng thái đơn hàng (State Machine):**
+
+| Từ trạng thái | Đến trạng thái | Ai thực hiện | Hành động kèm |
+|---|---|---|---|
+| `pending` | `confirmed` | Seller | — |
+| `pending` | `cancelled` | Buyer hoặc Seller | Hoàn trả tồn kho |
+| `confirmed` | `shipping` | Seller | — |
+| `confirmed` | `cancelled` | Buyer hoặc Seller | Hoàn trả tồn kho |
+| `shipping` | `completed` | Buyer | — |
+
+**Logic nghiệp vụ khi tạo đơn (`POST`):**
+- `BuyerId` tự động lấy từ JWT token (không truyền từ client)
+- `TotalPrice` tính tự động từ `Product.Price × Quantity` (chống gian lận giá)
+- Validate: sản phẩm phải có status `approved`, số lượng tồn kho đủ
+- Trừ kho ngay khi tạo đơn, tự động chuyển product sang `out_of_stock` nếu hết hàng
+- Sử dụng database transaction đảm bảo atomicity
+
+**Error codes:**
+
+| Code | HTTP | Mô tả |
+|---|---|---|
+| `ORDER_EMPTY_ITEMS` | 400 | Đơn hàng không có sản phẩm |
+| `PRODUCT_NOT_FOUND` | 404 | Sản phẩm không tồn tại |
+| `PRODUCT_NOT_AVAILABLE` | 400 | Sản phẩm chưa được duyệt |
+| `INSUFFICIENT_STOCK` | 400 | Tồn kho không đủ |
+| `INVALID_STATUS_TRANSITION` | 400 | Chuyển trạng thái không hợp lệ |
+| `ORDER_FORBIDDEN` | 403 | Không có quyền thực hiện |
+| `ORDER_NOT_FOUND` | 404 | Đơn hàng không tồn tại |
 
 ### 9. OrderItems - `/api/OrderItems`
 
