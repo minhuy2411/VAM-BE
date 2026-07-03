@@ -28,6 +28,47 @@ namespace VAM.Services
             _firebaseStorage = firebaseStorage;
         }
 
+        public new async Task<ProductDto?> GetByIdAsync(int id)
+        {
+            var product = await _context.Products
+                .Include(p => p.Seller)
+                .Include(p => p.Category)
+                .Include(p => p.Farm)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (product == null) return null;
+
+            var dto = _mapper.Map<ProductDto>(product);
+            dto.SellerName = product.Seller?.Name;
+            dto.CategoryName = product.Category?.Name;
+            dto.FarmName = product.Farm?.FarmName;
+
+            if (!string.IsNullOrWhiteSpace(product.ImageUrls))
+            {
+                try
+                {
+                    dto.ImageUrls = JsonSerializer.Deserialize<List<string>>(product.ImageUrls) ?? new List<string>();
+                }
+                catch
+                {
+                    dto.ImageUrls = new List<string> { product.ImageUrls };
+                }
+            }
+
+            // Fetch reviews for rating
+            var reviews = await _context.Reviews
+                .Where(r => r.ProductId == id)
+                .ToListAsync();
+
+            if (reviews.Any())
+            {
+                dto.AverageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+                dto.TotalReviews = reviews.Count;
+            }
+
+            return dto;
+        }
+
         public async Task<PaginatedResult<ProductDto>> GetFilteredAsync(ProductFilterDto filter)
         {
             var query = _context.Products

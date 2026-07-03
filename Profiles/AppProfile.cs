@@ -20,7 +20,10 @@ namespace VAM.Profiles
             CreateMap<CreateFarmDto, Farm>();
             CreateMap<UpdateFarmDto, Farm>();
 
-            CreateMap<Product, ProductDto>().ReverseMap();
+            CreateMap<Product, ProductDto>()
+                .ForMember(dest => dest.ImageUrls, opt => opt.Ignore())
+                .ReverseMap()
+                .ForMember(dest => dest.ImageUrls, opt => opt.Ignore());
             CreateMap<CreateProductDto, Product>();
             CreateMap<UpdateProductDto, Product>();
 
