@@ -28,6 +28,15 @@ namespace VAM.Entities
         [MaxLength(1000)]
         public string? Note { get; set; }
 
+        [MaxLength(100)]
+        public string? BankName { get; set; } // e.g. MB, VCB, Agribank (NAPAS code)
+
+        [MaxLength(50)]
+        public string? AccountNumber { get; set; }
+
+        [MaxLength(100)]
+        public string? AccountHolderName { get; set; }
+
         [Required]
         public ProfileStatus Status { get; set; } = ProfileStatus.PENDING;
 

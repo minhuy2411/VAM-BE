@@ -53,6 +53,8 @@ namespace VAM.Profiles
             
             CreateMap<BusinessProfile, BusinessProfileDto>().ReverseMap();
             CreateMap<CreateBusinessProfileDto, BusinessProfile>();
+
+            CreateMap<PayoutTransaction, PayoutTransactionDto>();
         }
     }
 }

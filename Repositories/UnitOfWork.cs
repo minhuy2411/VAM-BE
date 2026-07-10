@@ -20,6 +20,7 @@ namespace VAM.Repositories
         public IRepositoryBase<Review> Reviews { get; private set; }
         public IRepositoryBase<SellerProfile> SellerProfiles { get; private set; }
         public IRepositoryBase<BusinessProfile> BusinessProfiles { get; private set; }
+        public IRepositoryBase<PayoutTransaction> PayoutTransactions { get; private set; }
 
         public UnitOfWork(ApplicationDbContext context)
         {
@@ -34,6 +35,7 @@ namespace VAM.Repositories
             Reviews = new RepositoryBase<Review>(_context);
             SellerProfiles = new RepositoryBase<SellerProfile>(_context);
             BusinessProfiles = new RepositoryBase<BusinessProfile>(_context);
+            PayoutTransactions = new RepositoryBase<PayoutTransaction>(_context);
         }
 
         public async Task<int> CompleteAsync()

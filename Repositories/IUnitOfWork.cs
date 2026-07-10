@@ -15,6 +15,7 @@ namespace VAM.Repositories
         IRepositoryBase<Entities.Review> Reviews { get; }
         IRepositoryBase<Entities.SellerProfile> SellerProfiles { get; }
         IRepositoryBase<Entities.BusinessProfile> BusinessProfiles { get; }
+        IRepositoryBase<Entities.PayoutTransaction> PayoutTransactions { get; }
         
         Task<int> CompleteAsync();
         Task BeginTransactionAsync();

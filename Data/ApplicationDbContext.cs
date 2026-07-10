@@ -17,6 +17,7 @@ namespace VAM.Data
         public DbSet<Review> Reviews { get; set; }
         public DbSet<SellerProfile> SellerProfiles { get; set; }
         public DbSet<BusinessProfile> BusinessProfiles { get; set; }
+        public DbSet<PayoutTransaction> PayoutTransactions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -33,6 +34,7 @@ namespace VAM.Data
             modelBuilder.Entity<Review>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<SellerProfile>().HasQueryFilter(e => !e.IsDeleted);
             modelBuilder.Entity<BusinessProfile>().HasQueryFilter(e => !e.IsDeleted);
+            modelBuilder.Entity<PayoutTransaction>().HasQueryFilter(e => !e.IsDeleted);
             
             modelBuilder.Entity<User>().HasIndex(u => u.Email).IsUnique();
 

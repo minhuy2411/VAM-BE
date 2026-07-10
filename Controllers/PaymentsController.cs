@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using PayOS.Models.Webhooks;
 using VAM.DTOs;
 using VAM.Services;
 
@@ -8,7 +8,6 @@ namespace VAM.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
     public class PaymentsController : ControllerBase
     {
         private readonly IPaymentService _service;
@@ -18,6 +17,7 @@ namespace VAM.Controllers
             _service = service;
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = null)
         {
@@ -25,6 +25,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -33,6 +34,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPost]
         public async Task<IActionResult> Create(CreatePaymentDto dto)
         {
@@ -40,6 +42,7 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [Authorize]
         [HttpPut]
         public async Task<IActionResult> Update(UpdatePaymentDto dto)
         {
@@ -47,11 +50,35 @@ namespace VAM.Controllers
             return NoContent();
         }
 
+        [Authorize]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             await _service.DeleteAsync(id);
             return NoContent();
+        }
+
+        /// <summary>
+        /// Creates a PayOS checkout link for an order. Buyer is redirected to VietQR payment.
+        /// </summary>
+        [Authorize]
+        [HttpPost("checkout/{orderId}")]
+        public async Task<IActionResult> Checkout(int orderId)
+        {
+            var checkoutUrl = await _service.CreateCheckoutUrlAsync(orderId);
+            return Ok(new { checkoutUrl });
+        }
+
+        /// <summary>
+        /// PayOS webhook endpoint. Called by PayOS when payment status changes.
+        /// Must be anonymous for PayOS to call it.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost("webhook")]
+        public async Task<IActionResult> Webhook([FromBody] Webhook webhookBody)
+        {
+            await _service.ProcessWebhookPayloadAsync(webhookBody);
+            return Ok();
         }
     }
 }

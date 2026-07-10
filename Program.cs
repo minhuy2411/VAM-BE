@@ -84,8 +84,15 @@ builder.Services.AddAuthentication(options =>
 });
 
 // PayOS Configuration
-var payOSConfig = builder.Configuration.GetSection("PayOS");
-// builder.Services.AddSingleton(new PayOS(...));
+builder.Services.AddSingleton(new PayOS.PayOSClient(new PayOS.PayOSOptions
+{
+    ClientId = Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID")
+        ?? builder.Configuration["PayOS:ClientId"] ?? "",
+    ApiKey = Environment.GetEnvironmentVariable("PAYOS_API_KEY")
+        ?? builder.Configuration["PayOS:ApiKey"] ?? "",
+    ChecksumKey = Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY")
+        ?? builder.Configuration["PayOS:ChecksumKey"] ?? ""
+}));
 
 // Repository & UnitOfWork
 builder.Services.AddScoped(typeof(IRepositoryBase<>), typeof(RepositoryBase<>));
