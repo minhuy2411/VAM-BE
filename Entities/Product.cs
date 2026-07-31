@@ -47,6 +47,11 @@ namespace VAM.Entities
         [MaxLength(50)]
         public string Unit { get; set; } = string.Empty;
 
+        [Column(TypeName = "decimal(10, 2)")]
+        public decimal MinOrderQuantity { get; set; } = 1;
+
+        public bool IsWholesale { get; set; } = false;
+
         [MaxLength(20)]
         public string Status { get; set; } = "pending";
     }

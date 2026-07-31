@@ -6,10 +6,10 @@ namespace VAM.Services
     public interface IPaymentService : IServiceBase<PaymentDto, CreatePaymentDto, UpdatePaymentDto>
     {
         /// <summary>
-        /// Creates a PayOS checkout link for 100% of the order amount.
+        /// Creates a PayOS checkout link for the order amount (or optional custom amount from frontend).
         /// Returns the checkout URL.
         /// </summary>
-        Task<string> CreateCheckoutUrlAsync(int orderId);
+        Task<string> CreateCheckoutUrlAsync(int orderId, decimal? amount = null);
 
         /// <summary>
         /// Processes the PayOS webhook: verifies signature, updates Payment/Order status,

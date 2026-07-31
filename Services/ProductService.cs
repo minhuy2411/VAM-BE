@@ -77,14 +77,10 @@ namespace VAM.Services
                 .Include(p => p.Farm)
                 .AsQueryable();
 
-            // Filter by Status (default to "approved" if not specified)
-            if (!string.IsNullOrWhiteSpace(filter.Status))
+            // Filter by Status (If status is provided and not "all", filter by status; if empty/null/"all", fetch all statuses)
+            if (!string.IsNullOrWhiteSpace(filter.Status) && filter.Status.ToLower() != "all")
             {
                 query = query.Where(p => p.Status.ToLower() == filter.Status.ToLower());
-            }
-            else
-            {
-                query = query.Where(p => p.Status.ToLower() == "approved");
             }
 
             // Search by Name or Description
@@ -122,6 +118,12 @@ namespace VAM.Services
             {
                 var locationLower = filter.Location.ToLower();
                 query = query.Where(p => p.Farm != null && p.Farm.Location.ToLower().Contains(locationLower));
+            }
+
+            // Wholesale filtering
+            if (filter.IsWholesale.HasValue)
+            {
+                query = query.Where(p => p.IsWholesale == filter.IsWholesale.Value);
             }
 
             var productsList = await query.ToListAsync();
@@ -244,6 +246,8 @@ namespace VAM.Services
             if (dto.Price.HasValue) product.Price = dto.Price.Value;
             if (dto.Quantity.HasValue) product.Quantity = dto.Quantity.Value;
             if (!string.IsNullOrWhiteSpace(dto.Unit)) product.Unit = dto.Unit;
+            if (dto.MinOrderQuantity.HasValue) product.MinOrderQuantity = dto.MinOrderQuantity.Value;
+            if (dto.IsWholesale.HasValue) product.IsWholesale = dto.IsWholesale.Value;
             if (!string.IsNullOrWhiteSpace(dto.Status)) product.Status = dto.Status;
 
             // Auto update out_of_stock

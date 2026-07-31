@@ -19,6 +19,8 @@ namespace VAM.DTOs
         public decimal Price { get; set; }
         public decimal Quantity { get; set; }
         public string Unit { get; set; } = string.Empty;
+        public decimal MinOrderQuantity { get; set; } = 1;
+        public bool IsWholesale { get; set; } = false;
         public string Status { get; set; } = string.Empty;
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
@@ -50,6 +52,10 @@ namespace VAM.DTOs
         [MaxLength(50)]
         public string Unit { get; set; } = string.Empty;
 
+        public decimal MinOrderQuantity { get; set; } = 1;
+
+        public bool IsWholesale { get; set; } = false;
+
         public List<IFormFile>? Images { get; set; }
     }
 
@@ -73,6 +79,10 @@ namespace VAM.DTOs
         [MaxLength(50)]
         public string? Unit { get; set; }
 
+        public decimal? MinOrderQuantity { get; set; }
+
+        public bool? IsWholesale { get; set; }
+
         [MaxLength(20)]
         public string? Status { get; set; }
 
@@ -92,6 +102,7 @@ namespace VAM.DTOs
         public string? Location { get; set; }
         public double? MinRating { get; set; }
         public string? Status { get; set; }
+        public bool? IsWholesale { get; set; }
     }
 
     public class ApproveProductDto

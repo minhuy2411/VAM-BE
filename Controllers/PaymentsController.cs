@@ -60,12 +60,13 @@ namespace VAM.Controllers
 
         /// <summary>
         /// Creates a PayOS checkout link for an order. Buyer is redirected to VietQR payment.
+        /// Accepts optional amount from query parameter (e.g., total calculated on FE including fees).
         /// </summary>
         [Authorize]
         [HttpPost("checkout/{orderId}")]
-        public async Task<IActionResult> Checkout(int orderId)
+        public async Task<IActionResult> Checkout(int orderId, [FromQuery] decimal? amount = null)
         {
-            var checkoutUrl = await _service.CreateCheckoutUrlAsync(orderId);
+            var checkoutUrl = await _service.CreateCheckoutUrlAsync(orderId, amount);
             return Ok(new { checkoutUrl });
         }
 

@@ -37,10 +37,10 @@ namespace VAM.Services
         }
 
         /// <summary>
-        /// Creates a PayOS payment link for 100% of the order total.
+        /// Creates a PayOS payment link for the order. Uses custom amount if passed from FE (e.g. including service fee).
         /// Returns the checkout URL for the buyer.
         /// </summary>
-        public async Task<string> CreateCheckoutUrlAsync(int orderId)
+        public async Task<string> CreateCheckoutUrlAsync(int orderId, decimal? amount = null)
         {
             var order = await _context.Orders
                 .Include(o => o.OrderItems)
@@ -58,6 +58,9 @@ namespace VAM.Services
             if (existingPayment != null)
                 throw new AppException("Order has already been paid", 400, "ORDER_ALREADY_PAID");
 
+            // Determine final payment amount (use custom amount from FE if provided and > 0, otherwise order.TotalPrice)
+            decimal payAmount = (amount.HasValue && amount.Value > 0) ? amount.Value : order.TotalPrice;
+
             // Build item list for PayOS
             var items = order.OrderItems.Select(oi => new PaymentLinkItem
             {
@@ -69,13 +72,13 @@ namespace VAM.Services
             // Generate a unique order code for PayOS (use timestamp + orderId to avoid conflicts)
             long orderCode = long.Parse($"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{orderId}");
 
-            var returnUrl = _configuration["PayOS:ReturnUrl"] ?? "https://vam.example.com/payment/success";
-            var cancelUrl = _configuration["PayOS:CancelUrl"] ?? "https://vam.example.com/payment/cancel";
+            var returnUrl = _configuration["PayOS:ReturnUrl"] ?? "http://localhost:5173/?page=payment-success";
+            var cancelUrl = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/?page=payment-fail";
 
             var paymentRequest = new CreatePaymentLinkRequest
             {
                 OrderCode = orderCode,
-                Amount = (long)order.TotalPrice,
+                Amount = (long)payAmount,
                 Description = $"DH #{orderId}",
                 ReturnUrl = returnUrl,
                 CancelUrl = cancelUrl,
@@ -89,7 +92,7 @@ namespace VAM.Services
             {
                 OrderId = orderId,
                 Method = "PayOS",
-                Amount = order.TotalPrice,
+                Amount = payAmount,
                 Status = "pending",
                 PaymentDate = DateTimeOffset.UtcNow
             };
