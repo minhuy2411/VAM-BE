@@ -18,6 +18,12 @@ namespace VAM.DTOs
         public int? VerifiedById { get; set; }
     }
 
+    public class SellerDetailDto : SellerProfileDto
+    {
+        public UserDto? SellerInfo { get; set; }
+        public System.Collections.Generic.List<ProductDto> Products { get; set; } = new();
+    }
+
     public class CreateSellerProfileDto
     {
         [Required]

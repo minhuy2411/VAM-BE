@@ -72,8 +72,11 @@ namespace VAM.Services
             // Generate a unique order code for PayOS (use timestamp + orderId to avoid conflicts)
             long orderCode = long.Parse($"{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}{orderId}");
 
-            var returnUrl = _configuration["PayOS:ReturnUrl"] ?? "http://localhost:5173/?page=payment-success";
-            var cancelUrl = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/?page=payment-fail";
+            var baseUrlReturn = _configuration["PayOS:ReturnUrl"] ?? "http://localhost:5173/?page=payment-success";
+            var baseUrlCancel = _configuration["PayOS:CancelUrl"] ?? "http://localhost:5173/?page=payment-fail";
+
+            var returnUrl = $"{baseUrlReturn}&orderId={orderId}&orderCode={orderCode}";
+            var cancelUrl = $"{baseUrlCancel}&orderId={orderId}&orderCode={orderCode}";
 
             var paymentRequest = new CreatePaymentLinkRequest
             {

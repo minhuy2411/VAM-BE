@@ -141,6 +141,14 @@ namespace VAM.Services
             if (newStatus == "cancelled")
             {
                 await RestoreStock(order.OrderItems);
+
+                // Nếu là người mua (Buyer) chủ động hủy đơn khi chưa giao (pending/confirmed)
+                // hoặc hủy thanh toán, đánh dấu Soft Delete (IsDeleted = true) để không làm rác danh sách của Seller
+                bool isBuyer = order.BuyerId == userId;
+                if (isBuyer || currentStatus == "pending")
+                {
+                    order.IsDeleted = true;
+                }
             }
 
             order.Status = newStatus;

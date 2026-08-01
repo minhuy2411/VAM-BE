@@ -99,6 +99,67 @@ namespace VAM.Services
             return profile == null ? null : _mapper.Map<BusinessProfileDto>(profile);
         }
 
+        public async Task<PaginatedResult<SellerProfileDto>> GetApprovedSellerProfilesAsync(int page, int pageSize, string? search = null)
+        {
+            var query = await _unitOfWork.SellerProfiles.FindAsync(p => p.Status == ProfileStatus.APPROVED && !p.IsDeleted);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var lowerSearch = search.Trim().ToLower();
+                query = query.Where(p => 
+                    (p.FarmName != null && p.FarmName.ToLower().Contains(lowerSearch)) ||
+                    (p.FarmAddress != null && p.FarmAddress.ToLower().Contains(lowerSearch)) ||
+                    (p.AquacultureType != null && p.AquacultureType.ToLower().Contains(lowerSearch))
+                );
+            }
+
+            var totalCount = query.Count();
+            var items = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            return new PaginatedResult<SellerProfileDto>
+            {
+                Items = items.Select(i => _mapper.Map<SellerProfileDto>(i)).ToList(),
+                TotalCount = totalCount,
+                PageNumber = page,
+                PageSize = pageSize
+            };
+        }
+
+        public async Task<SellerDetailDto?> GetSellerDetailByIdAsync(int id)
+        {
+            var profile = await _unitOfWork.SellerProfiles.GetByIdAsync(id);
+            if (profile == null || profile.IsDeleted) return null;
+
+            var detail = _mapper.Map<SellerDetailDto>(profile);
+
+            // Fetch Seller User Info
+            var sellerUser = await _unitOfWork.Users.GetByIdAsync(profile.UserId);
+            if (sellerUser != null && !sellerUser.IsDeleted)
+            {
+                detail.SellerInfo = _mapper.Map<UserDto>(sellerUser);
+            }
+
+            // Fetch Products owned by this Seller
+            var products = await _unitOfWork.Products.FindAsync(p => p.SellerId == profile.UserId && !p.IsDeleted && p.Status == "approved");
+            detail.Products = products.Select(p => {
+                var pDto = _mapper.Map<ProductDto>(p);
+                if (!string.IsNullOrWhiteSpace(p.ImageUrls))
+                {
+                    try
+                    {
+                        pDto.ImageUrls = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<string>>(p.ImageUrls) ?? new System.Collections.Generic.List<string>();
+                    }
+                    catch
+                    {
+                        pDto.ImageUrls = new System.Collections.Generic.List<string> { p.ImageUrls };
+                    }
+                }
+                return pDto;
+            }).ToList();
+
+            return detail;
+        }
+
         public async Task<PaginatedResult<SellerProfileDto>> GetPendingSellerProfilesAsync(int page, int pageSize)
         {
             var query = await _unitOfWork.SellerProfiles.FindAsync(p => p.Status == ProfileStatus.PENDING);

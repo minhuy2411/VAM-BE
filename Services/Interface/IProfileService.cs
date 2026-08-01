@@ -10,6 +10,8 @@ namespace VAM.Services
         Task<BusinessProfileDto> CreateBusinessProfileAsync(int userId, CreateBusinessProfileDto dto);
         Task<SellerProfileDto?> GetMySellerProfileAsync(int userId);
         Task<BusinessProfileDto?> GetMyBusinessProfileAsync(int userId);
+        Task<PaginatedResult<SellerProfileDto>> GetApprovedSellerProfilesAsync(int page, int pageSize, string? search = null);
+        Task<SellerDetailDto?> GetSellerDetailByIdAsync(int id);
 
         // For admin
         Task<PaginatedResult<SellerProfileDto>> GetPendingSellerProfilesAsync(int page, int pageSize);

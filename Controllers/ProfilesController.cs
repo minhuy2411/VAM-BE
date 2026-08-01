@@ -110,5 +110,44 @@ namespace VAM.Controllers
                 return BadRequest(new { message = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get approved seller profiles (trang trại hải sản) cho trang Tìm nguồn hải sản
+        /// Công khai không cần đăng nhập
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("sellers")]
+        public async Task<IActionResult> GetApprovedSellers([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10, [FromQuery] string search = null)
+        {
+            try
+            {
+                var result = await _profileService.GetApprovedSellerProfilesAsync(pageNumber, pageSize, search);
+                return Ok(result);
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get seller profile detail theo ID kèm theo danh sách sản phẩm mà seller đó đang bán
+        /// Công khai không cần đăng nhập
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("sellers/{id}")]
+        public async Task<IActionResult> GetSellerDetail(int id)
+        {
+            try
+            {
+                var result = await _profileService.GetSellerDetailByIdAsync(id);
+                if (result == null) return NotFound(new { message = "Seller profile not found" });
+                return Ok(result);
+            }
+            catch (System.Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
     }
 }

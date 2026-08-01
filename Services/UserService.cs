@@ -83,7 +83,7 @@ namespace VAM.Services
                     Email = payload.Email,
                     Password = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
                     Role = UserRole.customer.ToString(),
-                    Status = UserStatus.active.ToString()
+                    Status = UserStatus.pending.ToString()
                 };
 
                 await _unitOfWork.Users.CreateAsync(user);

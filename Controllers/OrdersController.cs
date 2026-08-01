@@ -95,6 +95,7 @@ namespace VAM.Controllers
         /// confirmed→cancelled, shipping→completed
         /// </summary>
         [HttpPatch("{id}/status")]
+        [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto dto)
         {
             var userId = GetUserId();
