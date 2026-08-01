@@ -8,7 +8,18 @@ using VAM.Repositories;
 using VAM.Services;
 using VAM.Profiles;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
+
+// Tắt auto-reload file config để tránh đụng limit inotify trên Linux Docker Container của Render
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables();
 
 // ============================================================
 // Configure Kestrel to use PORT env variable (Render provides this)
