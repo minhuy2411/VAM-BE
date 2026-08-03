@@ -36,9 +36,12 @@ namespace VAM.Services
             _logger = logger;
             _configuration = configuration;
 
-            var payoutClientId = _configuration["PayOS:PayoutClientId"] ?? _configuration["PayOS:ClientId"] ?? "";
-            var payoutApiKey = _configuration["PayOS:PayoutApiKey"] ?? _configuration["PayOS:ApiKey"] ?? "";
-            var payoutChecksumKey = _configuration["PayOS:PayoutChecksumKey"] ?? _configuration["PayOS:ChecksumKey"] ?? "";
+            var payoutClientId = Environment.GetEnvironmentVariable("PAYOS_PAYOUT_CLIENT_ID")
+                ?? _configuration["PayOS:PayoutClientId"] ?? _configuration["PayOS:ClientId"] ?? "";
+            var payoutApiKey = Environment.GetEnvironmentVariable("PAYOS_PAYOUT_API_KEY")
+                ?? _configuration["PayOS:PayoutApiKey"] ?? _configuration["PayOS:ApiKey"] ?? "";
+            var payoutChecksumKey = Environment.GetEnvironmentVariable("PAYOS_PAYOUT_CHECKSUM_KEY")
+                ?? _configuration["PayOS:PayoutChecksumKey"] ?? _configuration["PayOS:ChecksumKey"] ?? "";
 
             _payoutPayOSClient = new PayOSClient(new PayOS.PayOSOptions
             {
