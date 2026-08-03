@@ -8,6 +8,10 @@ using VAM.Repositories;
 using VAM.Services;
 using VAM.Profiles;
 
+// Đặt biến môi trường để .NET sử dụng Polling File Watcher thay vì inotify (FileSystemWatcher) trên Linux/Docker
+// Cần đặt TRƯỚC CreateBuilder vì CreateBuilder mặc định đăng ký FileSystemWatcher ngay trong hàm tạo.
+Environment.SetEnvironmentVariable("DOTNET_USE_POLLING_FILE_WATCHER", "true");
+
 var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 {
     Args = args,

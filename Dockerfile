@@ -18,6 +18,7 @@ COPY --from=build /app/publish .
 
 # Render uses PORT env variable
 ENV ASPNETCORE_URLS=http://+:${PORT:-10000}
+ENV DOTNET_USE_POLLING_FILE_WATCHER=true
 
 EXPOSE 10000
 
