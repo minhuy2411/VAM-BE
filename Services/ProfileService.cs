@@ -43,6 +43,9 @@ namespace VAM.Services
                 FarmName = dto.FarmName,
                 FarmAddress = dto.FarmAddress,
                 AquacultureType = dto.AquacultureType,
+                BankName = dto.BankName,
+                AccountNumber = dto.AccountNumber,
+                AccountHolderName = dto.AccountHolderName,
                 Certificate = certificateUrl,
                 Note = dto.Note,
                 Status = ProfileStatus.PENDING

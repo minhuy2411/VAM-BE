@@ -11,6 +11,9 @@ namespace VAM.DTOs
         public string FarmName { get; set; } = string.Empty;
         public string? FarmAddress { get; set; }
         public string? AquacultureType { get; set; }
+        public string? BankName { get; set; }
+        public string? AccountNumber { get; set; }
+        public string? AccountHolderName { get; set; }
         public string? Certificate { get; set; }
         public string? Note { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -34,6 +37,18 @@ namespace VAM.DTOs
 
         [MaxLength(100)]
         public string? AquacultureType { get; set; }
+
+        [Required(ErrorMessage = "Tên ngân hàng là bắt buộc")]
+        [MaxLength(100)]
+        public string BankName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Số tài khoản ngân hàng là bắt buộc")]
+        [MaxLength(50)]
+        public string AccountNumber { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Tên chủ tài khoản là bắt buộc")]
+        [MaxLength(100)]
+        public string AccountHolderName { get; set; } = string.Empty;
 
         public IFormFile? Certificate { get; set; }
 

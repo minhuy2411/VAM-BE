@@ -64,7 +64,7 @@ namespace VAM.Services
             return System.Linq.Expressions.Expression.Lambda<System.Func<TEntity, bool>>(body, parameter);
         }
 
-        public async Task<TDto?> GetByIdAsync(int id)
+        public virtual async Task<TDto?> GetByIdAsync(int id)
         {
             var entity = await _repository.GetByIdAsync(id);
             return entity == null ? null : _mapper.Map<TDto>(entity);

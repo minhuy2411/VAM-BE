@@ -16,5 +16,10 @@ namespace VAM.Services
         /// calculates 95% payout, calls PayOS payout API, and records PayoutTransaction.
         /// </summary>
         Task ProcessWebhookPayloadAsync(Webhook webhookBody);
+
+        /// <summary>
+        /// Manually triggers payout for an order (useful for testing or admin manual dispatch).
+        /// </summary>
+        Task<Entities.PayoutTransaction> ExecuteSellerPayoutAsync(int orderId);
     }
 }

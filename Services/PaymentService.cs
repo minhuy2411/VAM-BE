@@ -18,6 +18,7 @@ namespace VAM.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly PayOSClient _payOSClient;
+        private readonly PayOSClient _payoutPayOSClient;
         private readonly ILogger<PaymentService> _logger;
         private readonly IConfiguration _configuration;
 
@@ -34,6 +35,17 @@ namespace VAM.Services
             _payOSClient = payOSClient;
             _logger = logger;
             _configuration = configuration;
+
+            var payoutClientId = _configuration["PayOS:PayoutClientId"] ?? _configuration["PayOS:ClientId"] ?? "";
+            var payoutApiKey = _configuration["PayOS:PayoutApiKey"] ?? _configuration["PayOS:ApiKey"] ?? "";
+            var payoutChecksumKey = _configuration["PayOS:PayoutChecksumKey"] ?? _configuration["PayOS:ChecksumKey"] ?? "";
+
+            _payoutPayOSClient = new PayOSClient(new PayOS.PayOSOptions
+            {
+                ClientId = payoutClientId,
+                ApiKey = payoutApiKey,
+                ChecksumKey = payoutChecksumKey
+            });
         }
 
         /// <summary>
@@ -218,17 +230,18 @@ namespace VAM.Services
 
             try
             {
+                var binCode = GetBankBinCode(sellerProfile.BankName);
                 var payoutRequest = new PayoutRequest
                 {
                     Amount = (long)payoutAmount,
                     ToAccountNumber = sellerProfile.AccountNumber,
-                    ToBin = sellerProfile.BankName ?? "",
+                    ToBin = binCode,
                     Description = $"Thanh toan don hang #{orderId}",
                     ReferenceId = $"order-{orderId}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"
                 };
 
                 var idempotencyKey = Guid.NewGuid().ToString();
-                var payoutResult = await _payOSClient.Payouts.CreateAsync(payoutRequest, idempotencyKey);
+                var payoutResult = await _payoutPayOSClient.Payouts.CreateAsync(payoutRequest, idempotencyKey);
 
                 transactionId = payoutResult?.Id;
                 _logger.LogInformation("Payout successful for order {OrderId}, payoutId: {PayoutId}", orderId, transactionId);
@@ -257,6 +270,111 @@ namespace VAM.Services
 
             _context.PayoutTransactions.Add(payoutTransaction);
             await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Manually trigger seller payout for an order
+        /// </summary>
+        public async Task<Entities.PayoutTransaction> ExecuteSellerPayoutAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .FirstOrDefaultAsync(o => o.Id == orderId && !o.IsDeleted);
+
+            if (order == null)
+                throw new AppException("Order not found", 404, "ORDER_NOT_FOUND");
+
+            var sellerId = order.OrderItems.FirstOrDefault()?.Product?.SellerId;
+            if (!sellerId.HasValue)
+                throw new AppException("No seller found for order", 400, "SELLER_NOT_FOUND");
+
+            var sellerProfile = await _context.SellerProfiles
+                .FirstOrDefaultAsync(sp => sp.UserId == sellerId.Value && !sp.IsDeleted);
+
+            if (sellerProfile == null || string.IsNullOrWhiteSpace(sellerProfile.AccountNumber))
+            {
+                throw new AppException("Seller has not configured bank account information", 400, "SELLER_BANK_INFO_MISSING");
+            }
+
+            decimal payoutAmount = order.TotalPrice * 0.95m;
+            decimal platformFee = order.TotalPrice * 0.05m;
+
+            string payoutStatus = "completed";
+            string payoutNote = "Chuyển khoản chi hộ thành công";
+            string? transactionId = null;
+
+            try
+            {
+                var binCode = GetBankBinCode(sellerProfile.BankName);
+                var payoutRequest = new PayoutRequest
+                {
+                    Amount = (long)payoutAmount,
+                    ToAccountNumber = sellerProfile.AccountNumber,
+                    ToBin = binCode,
+                    Description = $"Thanh toan don hang #{orderId}",
+                    ReferenceId = $"order-{orderId}-{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}"
+                };
+
+                var idempotencyKey = Guid.NewGuid().ToString();
+                var payoutResult = await _payoutPayOSClient.Payouts.CreateAsync(payoutRequest, idempotencyKey);
+
+                transactionId = payoutResult?.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Payout API call failed for order {OrderId}", orderId);
+                payoutStatus = "failed";
+                payoutNote = $"Lỗi Payout API ({ex.GetType().Name}): {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    payoutNote += $" | Chi tiết: {ex.InnerException.Message}";
+                }
+            }
+
+            var payoutTransaction = new Entities.PayoutTransaction
+            {
+                OrderId = orderId,
+                SellerProfileId = sellerProfile.Id,
+                Amount = payoutAmount,
+                PlatformFee = platformFee,
+                BankName = sellerProfile.BankName ?? "",
+                AccountNumber = sellerProfile.AccountNumber,
+                AccountHolderName = sellerProfile.AccountHolderName ?? "",
+                Status = payoutStatus,
+                Note = payoutNote,
+                TransactionId = transactionId
+            };
+
+            _context.PayoutTransactions.Add(payoutTransaction);
+            await _context.SaveChangesAsync();
+
+            return payoutTransaction;
+        }
+
+        private static string GetBankBinCode(string? bankInput)
+        {
+            if (string.IsNullOrWhiteSpace(bankInput)) return "970407";
+            var clean = bankInput.Trim().ToUpper();
+            return clean switch
+            {
+                "TCB" or "TECHCOMBANK" => "970407",
+                "MB" or "MBBANK" => "970422",
+                "VCB" or "VIETCOMBANK" => "970436",
+                "CTG" or "VIETINBANK" => "970415",
+                "BIDV" => "970418",
+                "VPB" or "VPBANK" => "970432",
+                "VBA" or "AGRIBANK" => "970405",
+                "ACB" => "970416",
+                "TPB" or "TPBANK" => "970423",
+                "STB" or "SACOMBANK" => "970403",
+                "HDB" or "HDBANK" => "970437",
+                "MSB" => "970426",
+                "OCB" => "970448",
+                "VIB" => "970441",
+                "SEAB" or "SEABANK" => "970440",
+                _ => clean.Length == 6 && clean.All(char.IsDigit) ? clean : "970407"
+            };
         }
     }
 }

@@ -9,6 +9,8 @@ namespace VAM.DTOs
         public int Id { get; set; }
         public int BuyerId { get; set; }
         public string? BuyerName { get; set; }
+        public string? BuyerEmail { get; set; }
+        public string? BuyerPhone { get; set; }
         public decimal TotalPrice { get; set; }
         public string ShippingAddress { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;

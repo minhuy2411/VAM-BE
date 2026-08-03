@@ -49,9 +49,11 @@ namespace VAM.Services
                 throw new Exception("Invalid email or password");
 
             var token = GenerateJwtToken(user, "access", TimeSpan.FromHours(2));
+            var refreshToken = GenerateJwtToken(user, "refresh", TimeSpan.FromDays(7));
             return new AuthResponseDto
             {
                 Token = token,
+                RefreshToken = refreshToken,
                 User = _mapper.Map<UserDto>(user)
             };
         }
@@ -98,9 +100,68 @@ namespace VAM.Services
             }
 
             var token = GenerateJwtToken(user, "access", TimeSpan.FromHours(2));
+            var refreshToken = GenerateJwtToken(user, "refresh", TimeSpan.FromDays(7));
             return new AuthResponseDto
             {
                 Token = token,
+                RefreshToken = refreshToken,
+                User = _mapper.Map<UserDto>(user)
+            };
+        }
+
+        public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto dto)
+        {
+            var handler = new JwtSecurityTokenHandler();
+            var jwtKey = GetJwtKey();
+            if (string.IsNullOrEmpty(jwtKey))
+                throw new Exception("JWT Key is not configured.");
+
+            var key = Encoding.UTF8.GetBytes(jwtKey);
+
+            ClaimsPrincipal principal;
+            try
+            {
+                principal = handler.ValidateToken(dto.RefreshToken, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = true,
+                    ValidIssuer = GetJwtIssuer(),
+                    ValidateAudience = true,
+                    ValidAudience = GetJwtAudience(),
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.Zero
+                }, out _);
+            }
+            catch
+            {
+                throw new Exception("Invalid or expired refresh token");
+            }
+
+            var purpose = principal.FindFirst("purpose")?.Value;
+            if (purpose != "refresh")
+                throw new Exception("Invalid token purpose");
+
+            var userIdStr = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr) || !int.TryParse(userIdStr, out int userId))
+                throw new Exception("Invalid token claims");
+
+            var user = await _unitOfWork.Users.GetByIdAsync(userId);
+            if (user == null)
+                throw new Exception("User not found");
+
+            if (user.Status == UserStatus.inactive.ToString() || user.Status == UserStatus.banned.ToString())
+            {
+                throw new Exception("Account is inactive or banned");
+            }
+
+            var accessToken = GenerateJwtToken(user, "access", TimeSpan.FromHours(2));
+            var newRefreshToken = GenerateJwtToken(user, "refresh", TimeSpan.FromDays(7));
+
+            return new AuthResponseDto
+            {
+                Token = accessToken,
+                RefreshToken = newRefreshToken,
                 User = _mapper.Map<UserDto>(user)
             };
         }

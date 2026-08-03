@@ -271,6 +271,54 @@ namespace VAM.Services
             }
         }
 
+        public override async Task<PaginatedResult<OrderDto>> GetAllAsync(int pageNumber = 1, int pageSize = 10, string search = null)
+        {
+            var query = _context.Orders
+                .Where(o => !o.IsDeleted)
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.Buyer)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var s = search.ToLower();
+                query = query.Where(o =>
+                    (o.Buyer != null && (o.Buyer.Name.ToLower().Contains(s) || o.Buyer.Email.ToLower().Contains(s))) ||
+                    o.ShippingAddress.ToLower().Contains(s) ||
+                    o.Status.ToLower().Contains(s) ||
+                    o.OrderItems.Any(oi => oi.Product != null && oi.Product.Name.ToLower().Contains(s))
+                );
+            }
+
+            query = query.OrderByDescending(o => o.OrderDate);
+
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PaginatedResult<OrderDto>
+            {
+                Items = items.Select(MapOrderToDto),
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+        }
+
+        public override async Task<OrderDto?> GetByIdAsync(int id)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderItems)
+                    .ThenInclude(oi => oi.Product)
+                .Include(o => o.Buyer)
+                .FirstOrDefaultAsync(o => o.Id == id && !o.IsDeleted);
+
+            return order == null ? null : MapOrderToDto(order);
+        }
+
         private OrderDto MapOrderToDto(Order order)
         {
             return new OrderDto
@@ -278,6 +326,8 @@ namespace VAM.Services
                 Id = order.Id,
                 BuyerId = order.BuyerId,
                 BuyerName = order.Buyer?.Name,
+                BuyerEmail = order.Buyer?.Email,
+                BuyerPhone = order.Buyer?.Phone,
                 TotalPrice = order.TotalPrice,
                 ShippingAddress = order.ShippingAddress,
                 Status = order.Status,

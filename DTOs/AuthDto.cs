@@ -62,9 +62,16 @@ namespace VAM.DTOs
         public string IdToken { get; set; } = string.Empty;
     }
 
+    public class RefreshTokenDto
+    {
+        [Required]
+        public string RefreshToken { get; set; } = string.Empty;
+    }
+
     public class AuthResponseDto
     {
         public string Token { get; set; } = string.Empty;
+        public string RefreshToken { get; set; } = string.Empty;
         public UserDto User { get; set; } = null!;
     }
 }

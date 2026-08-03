@@ -81,5 +81,30 @@ namespace VAM.Controllers
             await _service.ProcessWebhookPayloadAsync(webhookBody);
             return Ok();
         }
+
+        /// <summary>
+        /// Trigger seller payout for an order (Admin or simulation/testing).
+        /// </summary>
+        [Authorize]
+        [HttpPost("payout/{orderId}")]
+        public async Task<IActionResult> TriggerPayout(int orderId)
+        {
+            var result = await _service.ExecuteSellerPayoutAsync(orderId);
+            return Ok(new
+            {
+                id = result.Id,
+                orderId = result.OrderId,
+                sellerProfileId = result.SellerProfileId,
+                amount = result.Amount,
+                platformFee = result.PlatformFee,
+                bankName = result.BankName,
+                accountNumber = result.AccountNumber,
+                accountHolderName = result.AccountHolderName,
+                status = result.Status,
+                note = result.Note,
+                transactionId = result.TransactionId,
+                createdAt = result.CreatedAt
+            });
+        }
     }
 }
