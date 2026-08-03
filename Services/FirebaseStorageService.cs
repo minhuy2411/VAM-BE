@@ -18,7 +18,9 @@ namespace VAM.Services
         public FirebaseStorageService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
-            _bucket = configuration["Firebase:Bucket"] ?? throw new ArgumentNullException("Firebase:Bucket configuration is missing");
+            _bucket = Environment.GetEnvironmentVariable("FIREBASE_BUCKET") 
+                ?? configuration["Firebase:Bucket"] 
+                ?? throw new ArgumentNullException("Firebase:Bucket configuration is missing");
         }
 
         public async Task<string> UploadFileAsync(IFormFile file, string folderName)
