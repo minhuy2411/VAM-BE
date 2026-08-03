@@ -143,10 +143,22 @@ namespace VAM.Services
             await _emailService.SendEmailAsync(user.Email, "Reset Password Request", emailBody);
         }
 
+        private string GetJwtKey() =>
+            Environment.GetEnvironmentVariable("JWT_KEY") ?? _config["Jwt:Key"] ?? _config["JWT_KEY"] ?? "";
+
+        private string GetJwtIssuer() =>
+            Environment.GetEnvironmentVariable("JWT_ISSUER") ?? _config["Jwt:Issuer"] ?? _config["JWT_ISSUER"] ?? "VAMServer";
+
+        private string GetJwtAudience() =>
+            Environment.GetEnvironmentVariable("JWT_AUDIENCE") ?? _config["Jwt:Audience"] ?? _config["JWT_AUDIENCE"] ?? "VAMClients";
+
         public async Task ResetPasswordAsync(ResetPasswordDto dto)
         {
             var handler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "");
+            var jwtKey = GetJwtKey();
+            if (string.IsNullOrEmpty(jwtKey))
+                throw new Exception("JWT Key is not configured.");
+            var key = Encoding.UTF8.GetBytes(jwtKey);
 
             try
             {
@@ -155,9 +167,9 @@ namespace VAM.Services
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
                     ValidateIssuer = true,
-                    ValidIssuer = _config["Jwt:Issuer"],
+                    ValidIssuer = GetJwtIssuer(),
                     ValidateAudience = true,
-                    ValidAudience = _config["Jwt:Audience"],
+                    ValidAudience = GetJwtAudience(),
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.Zero
                 }, out SecurityToken validatedToken);
@@ -211,7 +223,10 @@ namespace VAM.Services
         private string GenerateJwtToken(User user, string purpose, TimeSpan expiry)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "");
+            var jwtKey = GetJwtKey();
+            if (string.IsNullOrEmpty(jwtKey))
+                throw new Exception("JWT Key is not configured. Please set JWT_KEY environment variable or Jwt:Key in configuration.");
+            var key = Encoding.UTF8.GetBytes(jwtKey);
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -222,8 +237,8 @@ namespace VAM.Services
                     new Claim("purpose", purpose)
                 }),
                 Expires = DateTime.UtcNow.Add(expiry),
-                Issuer = _config["Jwt:Issuer"],
-                Audience = _config["Jwt:Audience"],
+                Issuer = GetJwtIssuer(),
+                Audience = GetJwtAudience(),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
