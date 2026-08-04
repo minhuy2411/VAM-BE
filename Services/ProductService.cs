@@ -113,6 +113,12 @@ namespace VAM.Services
                 query = query.Where(p => p.FarmId == filter.FarmId.Value);
             }
 
+            // Seller filtering
+            if (filter.SellerId.HasValue)
+            {
+                query = query.Where(p => p.SellerId == filter.SellerId.Value);
+            }
+
             // Location filtering (via Farm)
             if (!string.IsNullOrWhiteSpace(filter.Location))
             {

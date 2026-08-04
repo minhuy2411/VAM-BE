@@ -124,7 +124,7 @@ namespace VAM.Services
         /// Handles PayOS webhook:
         /// 1. Verifies webhook signature
         /// 2. Updates Payment.Status = "completed" and Order.Status = "confirmed"
-        /// 3. Calculates 95% payout amount and 5% platform fee
+        /// 3. Calculates 97% payout amount and 3% platform fee
         /// 4. Calls PayOS Payout API to transfer funds to seller
         /// 5. Records PayoutTransaction with success/failure status
         /// </summary>
@@ -209,8 +209,8 @@ namespace VAM.Services
                 {
                     OrderId = orderId,
                     SellerProfileId = sellerProfile?.Id ?? 0,
-                    Amount = order.TotalPrice * 0.95m,
-                    PlatformFee = order.TotalPrice * 0.05m,
+                    Amount = order.TotalPrice * 0.97m,
+                    PlatformFee = order.TotalPrice * 0.03m,
                     BankName = sellerProfile?.BankName ?? "N/A",
                     AccountNumber = sellerProfile?.AccountNumber ?? "N/A",
                     AccountHolderName = sellerProfile?.AccountHolderName ?? "N/A",
@@ -223,8 +223,8 @@ namespace VAM.Services
             }
 
             // 4. Calculate payout amounts
-            decimal payoutAmount = order.TotalPrice * 0.95m;
-            decimal platformFee = order.TotalPrice * 0.05m;
+            decimal payoutAmount = order.TotalPrice * 0.97m;
+            decimal platformFee = order.TotalPrice * 0.03m;
 
             // 5. Call PayOS Payout API
             string payoutStatus = "completed";

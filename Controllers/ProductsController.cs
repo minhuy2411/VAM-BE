@@ -44,6 +44,25 @@ namespace VAM.Controllers
             return Ok(result);
         }
 
+        [HttpGet("seller/{sellerId}")]
+        public async Task<IActionResult> GetBySeller(int sellerId, [FromQuery] ProductFilterDto filter)
+        {
+            filter ??= new ProductFilterDto();
+            filter.SellerId = sellerId;
+            var result = await _service.GetFilteredAsync(filter);
+            return Ok(result);
+        }
+
+        [Authorize(Roles = "seller,admin")]
+        [HttpGet("my-products")]
+        public async Task<IActionResult> GetMyProducts([FromQuery] ProductFilterDto filter)
+        {
+            filter ??= new ProductFilterDto();
+            filter.SellerId = GetUserId();
+            var result = await _service.GetFilteredAsync(filter);
+            return Ok(result);
+        }
+
         [Authorize(Roles = "seller,admin")]
         [HttpPost]
         public async Task<IActionResult> Create([FromForm] CreateProductDto dto)

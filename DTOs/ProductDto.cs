@@ -99,6 +99,7 @@ namespace VAM.DTOs
         public decimal? MaxPrice { get; set; }
         public int? CategoryId { get; set; }
         public int? FarmId { get; set; }
+        public int? SellerId { get; set; }
         public string? Location { get; set; }
         public double? MinRating { get; set; }
         public string? Status { get; set; }
