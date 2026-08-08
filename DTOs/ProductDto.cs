@@ -24,6 +24,11 @@ namespace VAM.DTOs
         public string Status { get; set; } = string.Empty;
         public double AverageRating { get; set; }
         public int TotalReviews { get; set; }
+        public int? SellerProfileId { get; set; }
+        public string? SupplierName { get; set; }
+        public string? SupplierLocation { get; set; }
+        public bool IsSupplierVerified { get; set; } = true;
+        public double SupplierRating { get; set; } = 5.0;
     }
 
     public class CreateProductDto

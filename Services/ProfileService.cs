@@ -1,7 +1,9 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using VAM.Data;
 using VAM.DTOs;
 using VAM.Entities;
 using VAM.Repositories;
@@ -14,13 +16,20 @@ namespace VAM.Services
         private readonly IMapper _mapper;
         private readonly IEmailService _emailService;
         private readonly IFirebaseStorageService _firebaseStorageService;
+        private readonly ApplicationDbContext _context;
 
-        public ProfileService(IUnitOfWork unitOfWork, IMapper mapper, IEmailService emailService, IFirebaseStorageService firebaseStorageService)
+        public ProfileService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper, 
+            IEmailService emailService, 
+            IFirebaseStorageService firebaseStorageService,
+            ApplicationDbContext context)
         {
             _unitOfWork = unitOfWork;
             _mapper = mapper;
             _emailService = emailService;
             _firebaseStorageService = firebaseStorageService;
+            _context = context;
         }
 
         public async Task<SellerProfileDto> CreateSellerProfileAsync(int userId, CreateSellerProfileDto dto)
@@ -90,21 +99,25 @@ namespace VAM.Services
 
         public async Task<SellerProfileDto?> GetMySellerProfileAsync(int userId)
         {
-            var profiles = await _unitOfWork.SellerProfiles.FindAsync(p => p.UserId == userId);
-            var profile = profiles.FirstOrDefault();
+            var profile = await _context.SellerProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == userId && !p.IsDeleted);
             return profile == null ? null : _mapper.Map<SellerProfileDto>(profile);
         }
 
         public async Task<BusinessProfileDto?> GetMyBusinessProfileAsync(int userId)
         {
-            var profiles = await _unitOfWork.BusinessProfiles.FindAsync(p => p.UserId == userId);
-            var profile = profiles.FirstOrDefault();
+            var profile = await _context.BusinessProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.UserId == userId && !p.IsDeleted);
             return profile == null ? null : _mapper.Map<BusinessProfileDto>(profile);
         }
 
         public async Task<PaginatedResult<SellerProfileDto>> GetApprovedSellerProfilesAsync(int page, int pageSize, string? search = null)
         {
-            var query = await _unitOfWork.SellerProfiles.FindAsync(p => p.Status == ProfileStatus.APPROVED && !p.IsDeleted);
+            var query = _context.SellerProfiles
+                .AsNoTracking()
+                .Where(p => p.Status == ProfileStatus.APPROVED && !p.IsDeleted);
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -116,8 +129,8 @@ namespace VAM.Services
                 );
             }
 
-            var totalCount = query.Count();
-            var items = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
             return new PaginatedResult<SellerProfileDto>
             {
@@ -130,20 +143,27 @@ namespace VAM.Services
 
         public async Task<SellerDetailDto?> GetSellerDetailByIdAsync(int id)
         {
-            var profile = await _unitOfWork.SellerProfiles.GetByIdAsync(id);
-            if (profile == null || profile.IsDeleted) return null;
+            var profile = await _context.SellerProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+            if (profile == null) return null;
 
             var detail = _mapper.Map<SellerDetailDto>(profile);
 
             // Fetch Seller User Info
-            var sellerUser = await _unitOfWork.Users.GetByIdAsync(profile.UserId);
-            if (sellerUser != null && !sellerUser.IsDeleted)
+            var sellerUser = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == profile.UserId && !u.IsDeleted);
+            if (sellerUser != null)
             {
                 detail.SellerInfo = _mapper.Map<UserDto>(sellerUser);
             }
 
             // Fetch Products owned by this Seller
-            var products = await _unitOfWork.Products.FindAsync(p => p.SellerId == profile.UserId && !p.IsDeleted && p.Status == "approved");
+            var products = await _context.Products
+                .AsNoTracking()
+                .Where(p => p.SellerId == profile.UserId && !p.IsDeleted && p.Status == "approved")
+                .ToListAsync();
             detail.Products = products.Select(p => {
                 var pDto = _mapper.Map<ProductDto>(p);
                 if (!string.IsNullOrWhiteSpace(p.ImageUrls))
@@ -165,9 +185,11 @@ namespace VAM.Services
 
         public async Task<PaginatedResult<SellerProfileDto>> GetPendingSellerProfilesAsync(int page, int pageSize)
         {
-            var query = await _unitOfWork.SellerProfiles.FindAsync(p => p.Status == ProfileStatus.PENDING);
-            var totalCount = query.Count();
-            var items = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var query = _context.SellerProfiles
+                .AsNoTracking()
+                .Where(p => p.Status == ProfileStatus.PENDING && !p.IsDeleted);
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
             return new PaginatedResult<SellerProfileDto>
             {
@@ -180,9 +202,11 @@ namespace VAM.Services
 
         public async Task<PaginatedResult<BusinessProfileDto>> GetPendingBusinessProfilesAsync(int page, int pageSize)
         {
-            var query = await _unitOfWork.BusinessProfiles.FindAsync(p => p.Status == ProfileStatus.PENDING);
-            var totalCount = query.Count();
-            var items = query.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var query = _context.BusinessProfiles
+                .AsNoTracking()
+                .Where(p => p.Status == ProfileStatus.PENDING && !p.IsDeleted);
+            var totalCount = await query.CountAsync();
+            var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
 
             return new PaginatedResult<BusinessProfileDto>
             {

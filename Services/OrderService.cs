@@ -160,6 +160,7 @@ namespace VAM.Services
         public async Task<PaginatedResult<OrderDto>> GetOrdersByBuyerAsync(int buyerId, int pageNumber, int pageSize)
         {
             var query = _context.Orders
+                .AsNoTracking()
                 .Where(o => o.BuyerId == buyerId && !o.IsDeleted)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
@@ -185,6 +186,7 @@ namespace VAM.Services
         {
             // Find orders that contain at least one product from this seller
             var query = _context.Orders
+                .AsNoTracking()
                 .Where(o => !o.IsDeleted && o.OrderItems.Any(oi => oi.Product != null && oi.Product.SellerId == sellerId))
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
@@ -258,12 +260,15 @@ namespace VAM.Services
 
         private async Task RestoreStock(ICollection<OrderItem> orderItems)
         {
+            var productIds = orderItems.Select(oi => oi.ProductId).Distinct().ToList();
+            var products = await _context.Products
+                .Where(p => productIds.Contains(p.Id) && !p.IsDeleted)
+                .ToListAsync();
+
             foreach (var item in orderItems)
             {
-                if (item.Product == null) continue;
-
-                var product = await _context.Products.FindAsync(item.Product.Id);
-                if (product == null || product.IsDeleted) continue;
+                var product = products.FirstOrDefault(p => p.Id == item.ProductId);
+                if (product == null) continue;
 
                 product.Quantity += item.Quantity;
                 if (product.Status == "out_of_stock" && product.Quantity > 0)
@@ -274,6 +279,7 @@ namespace VAM.Services
         public override async Task<PaginatedResult<OrderDto>> GetAllAsync(int pageNumber = 1, int pageSize = 10, string search = null)
         {
             var query = _context.Orders
+                .AsNoTracking()
                 .Where(o => !o.IsDeleted)
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
@@ -311,6 +317,7 @@ namespace VAM.Services
         public override async Task<OrderDto?> GetByIdAsync(int id)
         {
             var order = await _context.Orders
+                .AsNoTracking()
                 .Include(o => o.OrderItems)
                     .ThenInclude(oi => oi.Product)
                 .Include(o => o.Buyer)

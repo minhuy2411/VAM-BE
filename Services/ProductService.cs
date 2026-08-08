@@ -34,6 +34,7 @@ namespace VAM.Services
                 .Include(p => p.Seller)
                 .Include(p => p.Category)
                 .Include(p => p.Farm)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
 
             if (product == null) return null;
@@ -55,15 +56,46 @@ namespace VAM.Services
                 }
             }
 
-            // Fetch reviews for rating
-            var reviews = await _context.Reviews
-                .Where(r => r.ProductId == id)
-                .ToListAsync();
-
-            if (reviews.Any())
+            // Rating stats (cached on Product entity, fallback to Reviews query if 0)
+            if (product.AverageRating > 0 || product.TotalReviews > 0)
             {
-                dto.AverageRating = Math.Round(reviews.Average(r => r.Rating), 1);
-                dto.TotalReviews = reviews.Count;
+                dto.AverageRating = product.AverageRating;
+                dto.TotalReviews = product.TotalReviews;
+            }
+            else
+            {
+                var reviews = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => r.ProductId == id)
+                    .ToListAsync();
+
+                if (reviews.Any())
+                {
+                    dto.AverageRating = Math.Round(reviews.Average(r => r.Rating), 1);
+                    dto.TotalReviews = reviews.Count;
+                }
+            }
+
+            // Fetch seller profile if present
+            var sellerProfile = await _context.SellerProfiles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(sp => sp.UserId == product.SellerId && !sp.IsDeleted);
+
+            if (sellerProfile != null)
+            {
+                dto.SellerProfileId = sellerProfile.Id;
+                dto.SupplierName = !string.IsNullOrWhiteSpace(sellerProfile.FarmName) ? sellerProfile.FarmName : (product.Farm?.FarmName ?? product.Seller?.Name);
+                dto.SupplierLocation = !string.IsNullOrWhiteSpace(sellerProfile.FarmAddress) ? sellerProfile.FarmAddress : product.Farm?.Location;
+                dto.IsSupplierVerified = sellerProfile.Status == Entities.ProfileStatus.APPROVED;
+                dto.SupplierRating = sellerProfile.AverageRating > 0 ? sellerProfile.AverageRating : 5.0;
+            }
+            else
+            {
+                dto.SellerProfileId = product.FarmId ?? product.SellerId;
+                dto.SupplierName = product.Farm?.FarmName ?? product.Seller?.Name ?? "Hộ nuôi Hải Sản Việt Nam";
+                dto.SupplierLocation = product.Farm?.Location ?? "Việt Nam";
+                dto.IsSupplierVerified = true;
+                dto.SupplierRating = 5.0;
             }
 
             return dto;
@@ -75,7 +107,8 @@ namespace VAM.Services
                 .Include(p => p.Seller)
                 .Include(p => p.Category)
                 .Include(p => p.Farm)
-                .AsQueryable();
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted);
 
             // Filter by Status (If status is provided and not "all", filter by status; if empty/null/"all", fetch all statuses)
             if (!string.IsNullOrWhiteSpace(filter.Status) && filter.Status.ToLower() != "all")
@@ -132,35 +165,21 @@ namespace VAM.Services
                 query = query.Where(p => p.IsWholesale == filter.IsWholesale.Value);
             }
 
-            var productsList = await query.ToListAsync();
-
-            // Get product IDs and fetch ratings
-            var productIds = productsList.Select(p => p.Id).ToList();
-            var reviews = await _context.Reviews
-                .Where(r => productIds.Contains(r.ProductId))
-                .ToListAsync();
-
-            var reviewStats = reviews
-                .GroupBy(r => r.ProductId)
-                .ToDictionary(g => g.Key, g => new
-                {
-                    AvgRating = g.Average(r => r.Rating),
-                    Count = g.Count()
-                });
-
-            // Filter by MinRating if requested
+            // Filter by MinRating at Database level
             if (filter.MinRating.HasValue)
             {
-                productsList = productsList.Where(p => 
-                    reviewStats.ContainsKey(p.Id) && reviewStats[p.Id].AvgRating >= filter.MinRating.Value
-                ).ToList();
+                query = query.Where(p => p.AverageRating >= filter.MinRating.Value);
             }
 
-            int totalCount = productsList.Count;
-            var pagedProducts = productsList
+            // Total count evaluated at Database level
+            int totalCount = await query.CountAsync();
+
+            // Pagination evaluated at Database level (SQL OFFSET & LIMIT)
+            var pagedProducts = await query
+                .OrderByDescending(p => p.CreatedAt)
                 .Skip((filter.PageNumber - 1) * filter.PageSize)
                 .Take(filter.PageSize)
-                .ToList();
+                .ToListAsync();
 
             var dtos = pagedProducts.Select(p =>
             {
@@ -168,6 +187,8 @@ namespace VAM.Services
                 dto.SellerName = p.Seller?.Name;
                 dto.CategoryName = p.Category?.Name;
                 dto.FarmName = p.Farm?.FarmName;
+                dto.AverageRating = p.AverageRating;
+                dto.TotalReviews = p.TotalReviews;
                 
                 if (!string.IsNullOrWhiteSpace(p.ImageUrls))
                 {
@@ -179,12 +200,6 @@ namespace VAM.Services
                     {
                         dto.ImageUrls = new List<string> { p.ImageUrls };
                     }
-                }
-
-                if (reviewStats.TryGetValue(p.Id, out var stats))
-                {
-                    dto.AverageRating = Math.Round(stats.AvgRating, 1);
-                    dto.TotalReviews = stats.Count;
                 }
 
                 return dto;

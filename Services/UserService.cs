@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System;
@@ -6,6 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
+using VAM.Data;
 using VAM.DTOs;
 using VAM.Entities;
 using VAM.Repositories;
@@ -19,18 +21,26 @@ namespace VAM.Services
     {
         private readonly IConfiguration _config;
         private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
 
-        public UserService(IUnitOfWork unitOfWork, IMapper mapper, IConfiguration config, IEmailService emailService)
+        public UserService(
+            IUnitOfWork unitOfWork, 
+            IMapper mapper, 
+            IConfiguration config, 
+            IEmailService emailService,
+            ApplicationDbContext context)
             : base(unitOfWork, unitOfWork.Users, mapper)
         {
             _config = config;
             _emailService = emailService;
+            _context = context;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
-            var user = users.FirstOrDefault();
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
 
             bool isValid = false;
             try
@@ -74,8 +84,8 @@ namespace VAM.Services
                 throw new Exception("Invalid Google ID token", e);
             }
 
-            var users = await _unitOfWork.Users.FindAsync(u => u.Email == payload.Email);
-            var user = users.FirstOrDefault();
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == payload.Email && !u.IsDeleted);
 
             if (user == null)
             {
@@ -168,8 +178,9 @@ namespace VAM.Services
 
         public async Task<UserDto> RegisterAsync(RegisterDto dto)
         {
-            var existingUsers = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
-            var existingUser = existingUsers.FirstOrDefault();
+            var existingUser = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
             if (existingUser != null)
                 throw new Exception("Email already exists");
 
@@ -192,8 +203,9 @@ namespace VAM.Services
 
         public async Task ForgotPasswordAsync(ForgotPasswordDto dto)
         {
-            var users = await _unitOfWork.Users.FindAsync(u => u.Email == dto.Email);
-            var user = users.FirstOrDefault();
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == dto.Email && !u.IsDeleted);
             if (user == null)
                 return; // Do not reveal if email exists
 

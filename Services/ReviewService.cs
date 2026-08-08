@@ -181,6 +181,7 @@ namespace VAM.Services
             filter ??= new ReviewFilterDto();
 
             var query = _context.Reviews
+                .AsNoTracking()
                 .Include(r => r.User)
                 .Include(r => r.Product)
                 .AsQueryable();
@@ -235,6 +236,7 @@ namespace VAM.Services
         public async Task<ProductRatingSummaryDto> GetProductRatingSummaryAsync(int productId)
         {
             var reviews = await _context.Reviews
+                .AsNoTracking()
                 .Where(r => r.ProductId == productId)
                 .ToListAsync();
 
@@ -258,14 +260,17 @@ namespace VAM.Services
         public async Task<SellerRatingSummaryDto> GetSellerRatingSummaryAsync(int sellerId)
         {
             var sellerProfile = await _context.SellerProfiles
+                .AsNoTracking()
                 .FirstOrDefaultAsync(s => s.UserId == sellerId);
 
             var sellerProductIds = await _context.Products
+                .AsNoTracking()
                 .Where(p => p.SellerId == sellerId)
                 .Select(p => p.Id)
                 .ToListAsync();
 
             var reviews = await _context.Reviews
+                .AsNoTracking()
                 .Where(r => sellerProductIds.Contains(r.ProductId))
                 .ToListAsync();
 
