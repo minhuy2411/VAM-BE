@@ -44,7 +44,17 @@ namespace VAM.Profiles
             CreateMap<CreatePaymentDto, Payment>();
             CreateMap<UpdatePaymentDto, Payment>();
 
-            CreateMap<Review, ReviewDto>().ReverseMap();
+            CreateMap<Review, ReviewDto>()
+                .ForMember(dest => dest.BuyerName, opt => opt.MapFrom(src => src.User != null ? src.User.Name : null))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.Product != null ? src.Product.Name : null))
+                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src => !string.IsNullOrEmpty(src.ImageUrls)
+                    ? System.Text.Json.JsonSerializer.Deserialize<List<string>>(src.ImageUrls, (System.Text.Json.JsonSerializerOptions?)null) ?? new List<string>()
+                    : new List<string>()))
+                .ReverseMap()
+                .ForMember(dest => dest.ImageUrls, opt => opt.MapFrom(src => src.ImageUrls != null && src.ImageUrls.Count > 0
+                    ? System.Text.Json.JsonSerializer.Serialize(src.ImageUrls, (System.Text.Json.JsonSerializerOptions?)null)
+                    : null));
+
             CreateMap<CreateReviewDto, Review>();
             CreateMap<UpdateReviewDto, Review>();
 

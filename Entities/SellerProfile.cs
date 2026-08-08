@@ -44,6 +44,10 @@ namespace VAM.Entities
 
         public int? VerifiedById { get; set; }
 
+        public double AverageRating { get; set; } = 0.0;
+
+        public int TotalReviews { get; set; } = 0;
+
         // Navigation properties
         [ForeignKey("UserId")]
         public virtual User? User { get; set; }

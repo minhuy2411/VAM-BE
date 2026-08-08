@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -33,5 +34,11 @@ namespace VAM.Entities
         public int Rating { get; set; }
 
         public string? Comment { get; set; }
+
+        public string? ImageUrls { get; set; }
+
+        public string? SellerReply { get; set; }
+
+        public DateTimeOffset? SellerRepliedAt { get; set; }
     }
 }

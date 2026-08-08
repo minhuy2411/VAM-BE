@@ -54,5 +54,9 @@ namespace VAM.Entities
 
         [MaxLength(20)]
         public string Status { get; set; } = "pending";
+
+        public double AverageRating { get; set; } = 0.0;
+
+        public int TotalReviews { get; set; } = 0;
     }
 }
