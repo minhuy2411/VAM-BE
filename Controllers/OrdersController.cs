@@ -78,15 +78,16 @@ namespace VAM.Controllers
         }
 
         /// <summary>
-        /// Create a new order with automatic price calculation and stock validation.
+        /// Create a new order (or multiple orders if products belong to different sellers)
+        /// with automatic price calculation and stock validation.
         /// BuyerId is set from JWT token.
         /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create(CreateOrderDto dto)
         {
             dto.BuyerId = GetUserId();
-            var result = await _service.CreateOrderAsync(dto);
-            return Ok(result);
+            var results = await _service.CreateOrderAsync(dto);
+            return Ok(results);
         }
 
         /// <summary>

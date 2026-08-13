@@ -300,8 +300,8 @@ namespace VAM.Services
                 throw new AppException("Seller has not configured bank account information", 400, "SELLER_BANK_INFO_MISSING");
             }
 
-            decimal payoutAmount = order.TotalPrice * 0.95m;
-            decimal platformFee = order.TotalPrice * 0.05m;
+            decimal payoutAmount = order.TotalPrice * 0.97m;
+            decimal platformFee = order.TotalPrice * 0.03m;
 
             string payoutStatus = "completed";
             string payoutNote = "Chuyển khoản chi hộ thành công";

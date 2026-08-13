@@ -24,9 +24,10 @@ namespace VAM.Services
 
         /// <summary>
         /// Create order with stock validation, price calculation, and inventory deduction.
+        /// Automatically splits items into separate orders per seller.
         /// TotalPrice is always calculated server-side from Product.Price to prevent manipulation.
         /// </summary>
-        public async Task<OrderDto> CreateOrderAsync(CreateOrderDto dto)
+        public async Task<List<OrderDto>> CreateOrderAsync(CreateOrderDto dto)
         {
             // 1. Validate non-empty items
             if (dto.OrderItems == null || !dto.OrderItems.Any())
@@ -50,55 +51,69 @@ namespace VAM.Services
                     throw new AppException($"Insufficient stock for '{product.Name}'. Available: {product.Quantity}, Requested: {item.Quantity}", 400, "INSUFFICIENT_STOCK");
             }
 
-            // 4. Begin transaction for atomicity
+            // 4. Group items by SellerId
+            var itemsBySeller = dto.OrderItems
+                .GroupBy(item => products.First(p => p.Id == item.ProductId).SellerId)
+                .ToList();
+
+            var createdOrderIds = new List<int>();
+
+            // 5. Begin transaction for atomicity across all seller orders
             await _unitOfWork.BeginTransactionAsync();
             try
             {
-                var order = new Order
+                foreach (var sellerGroup in itemsBySeller)
                 {
-                    BuyerId = dto.BuyerId,
-                    ShippingAddress = dto.ShippingAddress,
-                    Status = "pending",
-                    TotalPrice = 0,
-                    OrderDate = DateTimeOffset.UtcNow
-                };
-
-                decimal totalPrice = 0;
-
-                foreach (var item in dto.OrderItems)
-                {
-                    var product = products.First(p => p.Id == item.ProductId);
-
-                    var orderItem = new OrderItem
+                    var order = new Order
                     {
-                        ProductId = item.ProductId,
-                        Quantity = item.Quantity,
-                        Price = product.Price * item.Quantity // Snapshot price at order time
+                        BuyerId = dto.BuyerId,
+                        ShippingAddress = dto.ShippingAddress,
+                        Status = "pending",
+                        TotalPrice = 0,
+                        OrderDate = DateTimeOffset.UtcNow
                     };
-                    order.OrderItems.Add(orderItem);
-                    totalPrice += orderItem.Price;
 
-                    // 5. Deduct stock
-                    product.Quantity -= item.Quantity;
-                    if (product.Quantity <= 0)
-                        product.Status = "out_of_stock";
-                    _unitOfWork.Products.Update(product);
+                    decimal sellerTotalPrice = 0;
+
+                    foreach (var item in sellerGroup)
+                    {
+                        var product = products.First(p => p.Id == item.ProductId);
+
+                        var orderItem = new OrderItem
+                        {
+                            ProductId = item.ProductId,
+                            Quantity = item.Quantity,
+                            Price = product.Price * item.Quantity // Snapshot price at order time
+                        };
+                        order.OrderItems.Add(orderItem);
+                        sellerTotalPrice += orderItem.Price;
+
+                        // Deduct stock
+                        product.Quantity -= item.Quantity;
+                        if (product.Quantity <= 0)
+                            product.Status = "out_of_stock";
+                        _unitOfWork.Products.Update(product);
+                    }
+
+                    order.TotalPrice = sellerTotalPrice;
+
+                    await _unitOfWork.Orders.CreateAsync(order);
+                    await _unitOfWork.CompleteAsync();
+
+                    createdOrderIds.Add(order.Id);
                 }
 
-                order.TotalPrice = totalPrice;
-
-                await _unitOfWork.Orders.CreateAsync(order);
-                await _unitOfWork.CompleteAsync();
                 await _unitOfWork.CommitTransactionAsync();
 
-                // Reload with includes for response
-                var createdOrder = await _context.Orders
+                // Reload all created orders with includes for response
+                var createdOrders = await _context.Orders
                     .Include(o => o.OrderItems)
                         .ThenInclude(oi => oi.Product)
                     .Include(o => o.Buyer)
-                    .FirstOrDefaultAsync(o => o.Id == order.Id);
+                    .Where(o => createdOrderIds.Contains(o.Id))
+                    .ToListAsync();
 
-                return MapOrderToDto(createdOrder!);
+                return createdOrders.Select(MapOrderToDto).ToList();
             }
             catch
             {
