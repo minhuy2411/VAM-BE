@@ -28,6 +28,16 @@ namespace VAM.Services
             _firebaseStorage = firebaseStorage;
         }
 
+        public override async Task<PaginatedResult<ProductDto>> GetAllAsync(int pageNumber = 1, int pageSize = 10, string search = null)
+        {
+            return await GetFilteredAsync(new ProductFilterDto
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                Search = search
+            });
+        }
+
         public new async Task<ProductDto?> GetByIdAsync(int id)
         {
             var product = await _context.Products
@@ -181,15 +191,61 @@ namespace VAM.Services
                 .Take(filter.PageSize)
                 .ToListAsync();
 
+            // Fetch SellerProfiles in batch for all sellers in the current page
+            var sellerIds = pagedProducts.Select(p => p.SellerId).Distinct().ToList();
+            var sellerProfiles = await _context.SellerProfiles
+                .AsNoTracking()
+                .Where(sp => sellerIds.Contains(sp.UserId) && !sp.IsDeleted)
+                .ToDictionaryAsync(sp => sp.UserId);
+
+            // Rating stats fallback for products that have 0 cached rating/reviews
+            var productIdsNeedingReviews = pagedProducts
+                .Where(p => p.AverageRating == 0 && p.TotalReviews == 0)
+                .Select(p => p.Id)
+                .ToList();
+
+            var fallbackRatings = new Dictionary<int, (double avg, int count)>();
+            if (productIdsNeedingReviews.Any())
+            {
+                var reviewStats = await _context.Reviews
+                    .AsNoTracking()
+                    .Where(r => productIdsNeedingReviews.Contains(r.ProductId))
+                    .GroupBy(r => r.ProductId)
+                    .Select(g => new
+                    {
+                        ProductId = g.Key,
+                        AverageRating = Math.Round(g.Average(r => r.Rating), 1),
+                        TotalReviews = g.Count()
+                    })
+                    .ToListAsync();
+
+                fallbackRatings = reviewStats.ToDictionary(r => r.ProductId, r => (r.AverageRating, r.TotalReviews));
+            }
+
             var dtos = pagedProducts.Select(p =>
             {
                 var dto = _mapper.Map<ProductDto>(p);
                 dto.SellerName = p.Seller?.Name;
                 dto.CategoryName = p.Category?.Name;
                 dto.FarmName = p.Farm?.FarmName;
-                dto.AverageRating = p.AverageRating;
-                dto.TotalReviews = p.TotalReviews;
                 
+                // Rating stats (cached on Product entity, fallback to Reviews query if 0)
+                if (p.AverageRating > 0 || p.TotalReviews > 0)
+                {
+                    dto.AverageRating = p.AverageRating;
+                    dto.TotalReviews = p.TotalReviews;
+                }
+                else if (fallbackRatings.TryGetValue(p.Id, out var fallback))
+                {
+                    dto.AverageRating = fallback.avg;
+                    dto.TotalReviews = fallback.count;
+                }
+                else
+                {
+                    dto.AverageRating = 0;
+                    dto.TotalReviews = 0;
+                }
+
                 if (!string.IsNullOrWhiteSpace(p.ImageUrls))
                 {
                     try
@@ -200,6 +256,24 @@ namespace VAM.Services
                     {
                         dto.ImageUrls = new List<string> { p.ImageUrls };
                     }
+                }
+
+                // Supplier info
+                if (sellerProfiles.TryGetValue(p.SellerId, out var sellerProfile))
+                {
+                    dto.SellerProfileId = sellerProfile.Id;
+                    dto.SupplierName = !string.IsNullOrWhiteSpace(sellerProfile.FarmName) ? sellerProfile.FarmName : (p.Farm?.FarmName ?? p.Seller?.Name);
+                    dto.SupplierLocation = !string.IsNullOrWhiteSpace(sellerProfile.FarmAddress) ? sellerProfile.FarmAddress : p.Farm?.Location;
+                    dto.IsSupplierVerified = sellerProfile.Status == Entities.ProfileStatus.APPROVED;
+                    dto.SupplierRating = sellerProfile.AverageRating > 0 ? sellerProfile.AverageRating : 5.0;
+                }
+                else
+                {
+                    dto.SellerProfileId = p.FarmId ?? p.SellerId;
+                    dto.SupplierName = p.Farm?.FarmName ?? p.Seller?.Name ?? "Hộ nuôi Hải Sản Việt Nam";
+                    dto.SupplierLocation = p.Farm?.Location ?? "Việt Nam";
+                    dto.IsSupplierVerified = true;
+                    dto.SupplierRating = 5.0;
                 }
 
                 return dto;
